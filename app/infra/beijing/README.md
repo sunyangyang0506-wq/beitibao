@@ -1,5 +1,7 @@
 # 背题宝北京部署
 
+当前已建资源、运行开关和入口回读见 [北京预发当前状态](../../../docs/handoff/cloud-state.md)。授权部署人从 [本机材料索引](../../../docs/handoff/materials.md) 定位现有参数和验收记录。
+
 Terraform 固定华北 2（北京），定义独立 VPC 和双可用区、PostgreSQL 16 高可用实例、私有版本化 OSS、SMQ 工作队列和死信队列、EventBridge 探针、FC V3 及 SLS。服务名与账号绑定。HTTP 探针使用签名认证和内网入口。
 
 ## 本地核验
@@ -47,7 +49,7 @@ terraform test
 3. 分配角色。API 需要目标 OSS `papers/*` 的 `oss:PutObject` 和 `oss:GetObjectVersion`。`paper`、`page`、`solution` 需要读取对应版本。清理 Worker 需要目标桶的 `oss:ListObjectVersions` 和对应对象的 `oss:DeleteObjectVersion`。OSS 资源 ARN 的地域字段使用 `*`，桶所有者、桶名和对象前缀仍按目标环境限定。业务和交卷 Worker 只需要本队列的发送、接收及删除消息权限。另配置 FC 访问 VPC、ACR、SLS 的服务权限。为私有 RDS 地址启用云端证书，将 CA 文件提供给迁移、API 和 Worker，数据库连接串使用 `sslmode=verify-full` 并用 `sslrootcert` 指向各自运行环境中的 CA 文件。[OSS 资源授权语法](https://help.aliyun.com/zh/oss/user-guide/authorization-syntax-and-elements#resource)
 4. 用独立迁移角色执行 `npm run migrate`，应用 `scripts/runtime-grants.sql`。对四种业务 Worker 分别执行 `scripts/business-worker-grants.sql`，指定 `worker_lane` 和 `worker_role`。交卷、邮件、清理分别使用 `practice-queue-grants.sql`、`mail-worker-grants.sql`、`maintenance-grants.sql`。API 的 `DATABASE_URL` 和各 Worker 的 `BEITIBAO_JOB_DATABASE_URL` 使用对应运行角色。
 5. 通过 FC 部署配置注入私有连接串、邮件凭据及 `RECOVERY_TOKEN_SECRET`。用应用说明开通首位管理员和专用验收账号。Terraform 创建函数时注入公开参数，随后忽略环境变量漂移，避免计划覆盖手动管理的配置。状态与计划在受控、加密的后端管理，读取云配置后可能包含敏感环境变量。启用模型时，在相关函数配置真实北京 Workspace、API Key 和 `BAILIAN_MODEL_LIMITS_JSON`。 上线前在 API 和模型 Worker 中配置 `BAILIAN_DAILY_BUDGET_CENTS=2000`，即全站每日 20 元。预算按北京时间自然日计。格式为四个固定快照到 `{ "rpm": 正整数, "tpm": 正整数 }` 的映射，值由目标账号实测配额和留量确定。模型和预测分别通过 `BEITIBAO_ENABLE_MODELS`、`BEITIBAO_ENABLE_PREDICTIONS` 启用。环境变量与 Terraform 中的触发器选项需同步更新。
-   启用客观题模型前，候选版本须完成逐项 95% 的整卷验收及独立授权样卷盲测。[逐项验收命令](../../eval/moex-2020-pilot/README.md#逐项验收)
+   启用客观题模型前，候选版本须在整卷回归与独立授权样卷盲测中逐项严格超过 95%，并满足适用的更高门槛。[逐项验收命令](../../eval/moex-2020-pilot/README.md#逐项验收)
 6. 在预发启用 `run_schedules`，配置已批准的 HTTPS 入口。函数内提供同源静态站和 API。FC 默认浏览器域名可能强制附件下载，浏览器验收使用已配置的 HTTPS 反向代理或自定义域名。使用 `TRUSTED_PROXY_CIDRS` 时，只填已核验的代理地址段。关闭模型时，用户可上传、预览、手动核对与作答。
 7. 在授权的验收账号下设置 `BEITIBAO_ACCEPTANCE_ORIGIN`、`BEITIBAO_ACCEPTANCE_EMAIL` 和 `BEITIBAO_ACCEPTANCE_PASSWORD`，运行 `node verify-release.mjs`。此脚本上传项目合成 PDF，经实际 OSS、队列和 API 完成核对、交卷和删除，并检查 HTTPS、CORS 和对象版本。再用真实设备完成多图、遮盖、原图和错误恢复的网页测试。
 8. 用目标环境完成压力、恢复和回滚演练。核对 Worker 重投与死信、邮件真投递、实际配额、账单和告警。设置 `release.alert_policy` 时使用已审核的 SLS 告警动作策略。确认 SLS 可检索事件并实际触发告警。按 [项目发布门槛](../../../docs/bmad/architecture.md) 验收真实盲测和数据处理。

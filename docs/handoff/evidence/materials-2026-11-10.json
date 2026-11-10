@@ -1,0 +1,43 @@
+{
+  "createdAt": "2026-11-10T13:01:34+08:00",
+  "source": "original project evaluation files",
+  "archive": "handoff/2026-11-10-beitibao/offline-materials.tar.gz",
+  "sha256": "a3ae9cfd98cb25711280451865cbf6fad96c62adf4e06d2291e8a1abc9e9de34",
+  "archiveBytes": 311198979,
+  "verifiedFiles": 563,
+  "groups": {
+    "chinese-university-qa": {
+      "files": 82,
+      "bytes": 8084736
+    },
+    "national-evaluation-candidates": {
+      "files": 4,
+      "bytes": 12186782
+    },
+    "evaluation-runs": {
+      "files": 11,
+      "bytes": 163694
+    },
+    "local-model-pilot": {
+      "files": 269,
+      "bytes": 1082303
+    },
+    "moex-2020-pilot": {
+      "files": 11,
+      "bytes": 2909830
+    },
+    "national-exam-archive": {
+      "files": 120,
+      "bytes": 291512340
+    },
+    "source-materials": {
+      "files": 31,
+      "bytes": 28867724
+    },
+    "urjc-2025-pilot": {
+      "files": 35,
+      "bytes": 2797677
+    }
+  },
+  "patternReviewOmissions": 0
+}

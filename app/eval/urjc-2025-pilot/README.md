@@ -1,5 +1,7 @@
 # URJC 数据结构真实试卷单卷试跑
 
+原图、裁片、教师答案对照和完整响应按本页记录的用途从本机交接包取得。[材料和恢复说明](../../../docs/handoff/materials.md)
+
 2026-11-08，华北 2（北京）「评测」空间。试卷为 Universidad Rey Juan Carlos 的 Estructuras de Datos (GIS)，Prueba de Evaluación II，2025-05-12。
 
 ## 来源与脱敏

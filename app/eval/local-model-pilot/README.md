@@ -1,5 +1,7 @@
 # 2026-11-10 本地小模型同卷评测
 
+逐题输入、模型原始响应和本机复算材料可按授权从交接包恢复。[材料和恢复说明](../../../docs/handoff/materials.md)
+
 设备为 Apple M4 Mac，16 GB 内存。中文《计算机概要》沿用同一份 4 页题面和 40 道官方单选答案。西语数据结构沿用同一张两列拼版、8 道题、6 张图和教师解答。模型输入来自题面、图或 OCR 输出，评分在本机对照参考答案。[中文卷来源和验收规则](../moex-2020-pilot/README.md) · [西语卷授权与既有复测](../urjc-2025-pilot/README.md)
 
 - PaddleOCR-VL-1.6 使用官方完整权重和 PP-DocLayoutV3。裁片使用 CPU 图表模式，整卷使用 CPU 做版面定位、MLX 做文字识别。中文第 1 页的 CPU 对照另存，不混入整卷成绩。[PaddleOCR Mac 运行方式](https://www.paddleocr.ai/latest/version3.x/pipeline_usage/PaddleOCR-VL-Apple-Silicon.html)

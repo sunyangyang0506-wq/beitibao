@@ -1,0 +1,258 @@
+{
+  "region": "cn-beijing",
+  "environment": "staging",
+  "checkedAt": {
+    "functionsAndRds": "2026-11-10T12:48:21+08:00",
+    "dnsAndAliases": "2026-11-10T12:50:54+08:00",
+    "queuesAndMail": "2026-11-10T12:56:09+08:00",
+    "oss": "2026-11-10T12:57:29+08:00"
+  },
+  "identity": {
+    "profile": "beitibao-staging-bootstrap",
+    "accountMatches": true,
+    "type": "Account",
+    "error": null
+  },
+  "functions": [
+    {
+      "lane": "application",
+      "state": "Active",
+      "lastUpdateStatus": "Successful",
+      "memoryMB": 1024,
+      "cpu": 1,
+      "timeoutSeconds": 55,
+      "instanceConcurrency": 4,
+      "imageDigest": "62e4a5bd8a3ff70ebebfcadc3727e1eafcddbf26480a7598f545860325790338",
+      "modelEnabled": "0",
+      "predictionEnabled": "0",
+      "modelKeyConfigured": false,
+      "dbConnectionConfigured": true
+    },
+    {
+      "lane": "mail",
+      "state": "Active",
+      "lastUpdateStatus": "Successful",
+      "memoryMB": 1024,
+      "cpu": 1,
+      "timeoutSeconds": 90,
+      "instanceConcurrency": 1,
+      "imageDigest": "62e4a5bd8a3ff70ebebfcadc3727e1eafcddbf26480a7598f545860325790338",
+      "modelEnabled": "0",
+      "predictionEnabled": "0",
+      "modelKeyConfigured": false,
+      "dbConnectionConfigured": true
+    },
+    {
+      "lane": "maintenance",
+      "state": "Active",
+      "lastUpdateStatus": "Successful",
+      "memoryMB": 1024,
+      "cpu": 1,
+      "timeoutSeconds": 90,
+      "instanceConcurrency": 1,
+      "imageDigest": "62e4a5bd8a3ff70ebebfcadc3727e1eafcddbf26480a7598f545860325790338",
+      "modelEnabled": "0",
+      "predictionEnabled": "0",
+      "modelKeyConfigured": false,
+      "dbConnectionConfigured": true
+    },
+    {
+      "lane": "page",
+      "state": "Active",
+      "lastUpdateStatus": "Successful",
+      "memoryMB": 1024,
+      "cpu": 1,
+      "timeoutSeconds": 240,
+      "instanceConcurrency": 1,
+      "imageDigest": "62e4a5bd8a3ff70ebebfcadc3727e1eafcddbf26480a7598f545860325790338",
+      "modelEnabled": "0",
+      "predictionEnabled": "0",
+      "modelKeyConfigured": false,
+      "dbConnectionConfigured": true
+    },
+    {
+      "lane": "paper",
+      "state": "Active",
+      "lastUpdateStatus": "Successful",
+      "memoryMB": 1024,
+      "cpu": 1,
+      "timeoutSeconds": 240,
+      "instanceConcurrency": 1,
+      "imageDigest": "62e4a5bd8a3ff70ebebfcadc3727e1eafcddbf26480a7598f545860325790338",
+      "modelEnabled": "0",
+      "predictionEnabled": "0",
+      "modelKeyConfigured": false,
+      "dbConnectionConfigured": true
+    },
+    {
+      "lane": "practice",
+      "state": "Active",
+      "lastUpdateStatus": "Successful",
+      "memoryMB": 1024,
+      "cpu": 1,
+      "timeoutSeconds": 90,
+      "instanceConcurrency": 1,
+      "imageDigest": "62e4a5bd8a3ff70ebebfcadc3727e1eafcddbf26480a7598f545860325790338",
+      "modelEnabled": "0",
+      "predictionEnabled": "0",
+      "modelKeyConfigured": false,
+      "dbConnectionConfigured": true
+    },
+    {
+      "lane": "prediction",
+      "state": "Active",
+      "lastUpdateStatus": "Successful",
+      "memoryMB": 1024,
+      "cpu": 1,
+      "timeoutSeconds": 240,
+      "instanceConcurrency": 1,
+      "imageDigest": "62e4a5bd8a3ff70ebebfcadc3727e1eafcddbf26480a7598f545860325790338",
+      "modelEnabled": "0",
+      "predictionEnabled": "0",
+      "modelKeyConfigured": false,
+      "dbConnectionConfigured": true
+    },
+    {
+      "lane": "solution",
+      "state": "Active",
+      "lastUpdateStatus": "Successful",
+      "memoryMB": 1024,
+      "cpu": 1,
+      "timeoutSeconds": 90,
+      "instanceConcurrency": 1,
+      "imageDigest": "62e4a5bd8a3ff70ebebfcadc3727e1eafcddbf26480a7598f545860325790338",
+      "modelEnabled": "0",
+      "predictionEnabled": "0",
+      "modelKeyConfigured": false,
+      "dbConnectionConfigured": true
+    },
+    {
+      "lane": "smoke",
+      "state": "Active",
+      "lastUpdateStatus": "Successful",
+      "memoryMB": 512,
+      "cpu": 0.5,
+      "timeoutSeconds": 30,
+      "instanceConcurrency": 4,
+      "imageDigest": "f034a86434670b8216c7d725a1699d3d34965274387e8879acb028441fa34ffb",
+      "modelEnabled": "absent",
+      "predictionEnabled": "absent",
+      "modelKeyConfigured": false,
+      "dbConnectionConfigured": false
+    }
+  ],
+  "applicationAliases": [],
+  "applicationTriggerListing": {
+    "error": "AccessDenied",
+    "httpStatus": 403,
+    "reason": "AliyunServiceRoleForFC unavailable for the account in this operation"
+  },
+  "rds": {
+    "instance": {
+      "DBInstanceStatus": "Running",
+      "Engine": "PostgreSQL",
+      "EngineVersion": "16.0",
+      "DBInstanceClass": "pg.n2.2c.2m",
+      "DBInstanceStorage": 20,
+      "PayType": "Postpaid",
+      "Category": "HighAvailability"
+    },
+    "instanceError": null,
+    "ssl": {
+      "SSLEnabled": "on",
+      "RequireUpdate": "0",
+      "SSLExpireTime": "2027-11-08T08:37:41Z"
+    },
+    "sslError": null
+  },
+  "oss": {
+    "checkedAt": "2026-11-10T12:57:29+08:00",
+    "metadataRead": true,
+    "acl": "private",
+    "versioning": null,
+    "error": null
+  },
+  "smq": [
+    {
+      "lane": "page",
+      "metadataRead": false,
+      "error": "ServiceInDebt"
+    },
+    {
+      "lane": "paper",
+      "metadataRead": false,
+      "error": "ServiceInDebt"
+    },
+    {
+      "lane": "prediction",
+      "metadataRead": false,
+      "error": "ServiceInDebt"
+    },
+    {
+      "lane": "solution",
+      "metadataRead": false,
+      "error": "ServiceInDebt"
+    },
+    {
+      "lane": "dead_letter",
+      "metadataRead": false,
+      "error": "ServiceInDebt"
+    },
+    {
+      "lane": "practice",
+      "metadataRead": false,
+      "error": "ServiceInDebt"
+    },
+    {
+      "lane": "tasks",
+      "metadataRead": false,
+      "error": "ServiceInDebt"
+    }
+  ],
+  "sls": {
+    "metadataRead": true,
+    "error": null
+  },
+  "eventBridge": {
+    "metadataRead": true,
+    "error": null
+  },
+  "mail": {
+    "checked": true,
+    "configurationPresent": {
+      "RECOVERY_SMTP_URL": false,
+      "RECOVERY_MAIL_FROM": false,
+      "WEB_ORIGIN": true
+    }
+  },
+  "domain": {
+    "name": "beitibao.cn",
+    "matchesInAccountDomainList": 0,
+    "dnsZoneLookupError": "InvalidDomainName.NoExist",
+    "matchingFcCustomDomains": [],
+    "healthChecks": {
+      "beitibao.cn": {
+        "http": "000",
+        "exit": 35,
+        "dnsStatus": "NOERROR",
+        "dnsAnswers": 1
+      },
+      "www.beitibao.cn": {
+        "http": "000",
+        "exit": 35,
+        "dnsStatus": "NOERROR",
+        "dnsAnswers": 1
+      }
+    },
+    "lastUserReportedTemplateStatus": "submitted and under review on 2026-11-08"
+  },
+  "applicationConfiguration": {
+    "configuredWebOriginScheme": "https",
+    "configuredWebOriginKind": "placeholder",
+    "modelDailyBudgetCents": null,
+    "modelQuotaConfigured": false,
+    "modelWorkspaceConfigured": false,
+    "resolvedImageReported": true,
+    "configuredVpc": true
+  }
+}
