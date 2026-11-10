@@ -12,6 +12,9 @@ sandbox=$(mktemp -d /tmp/beitibao-ci.XXXXXX)
 cleanup() { rm -rf -- "$sandbox"; }
 trap cleanup EXIT
 mkdir -p "$sandbox/home" "$sandbox/tmp"
+# npm rejects loading one path as both the user and global config.
+: > "$sandbox/npm-userconfig"
+: > "$sandbox/npm-globalconfig"
 
 # An allowlist removes inherited database URLs, cloud/model/SMTP credentials,
 # NODE_OPTIONS, npm authentication, and any local application feature flags.
@@ -19,7 +22,8 @@ mkdir -p "$sandbox/home" "$sandbox/tmp"
 env -i PATH="$PATH" HOME="$sandbox/home" TMPDIR="$sandbox/tmp" \
   LANG=C.UTF-8 LC_ALL=C.UTF-8 TZ=UTC CI=true \
   npm_config_cache="$sandbox/home/.npm" \
-  npm_config_userconfig=/dev/null npm_config_globalconfig=/dev/null \
+  npm_config_userconfig="$sandbox/npm-userconfig" \
+  npm_config_globalconfig="$sandbox/npm-globalconfig" \
   bash -euo pipefail -s -- "${1:-}" <<'CI'
 fail() { printf 'CI prerequisite failed: %s\n' "$*" >&2; exit 1; }
 
