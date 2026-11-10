@@ -581,6 +581,20 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.equal(await processNextPaper(worker), true);
     const linkedQuestion = (await request(owner, 'POST', variantPath + '/questions', question)).json().id;
     assert.equal((await request(owner, 'POST', variantPath + '/questions/' + linkedQuestion + '/kind', { kind: 'short_answer' })).statusCode, 200);
+    // The original question changed from other to short_answer above. Its old
+    // attempt must not count as current coverage until the new input is practised.
+    const beforeKindRetake = (await request(owner, 'GET', '/progress')).json().courses.find(item => item.id === course.json().course.id);
+    const kindRetakeResponse = await request(owner, 'POST', practicePath, {});
+    assert.equal(kindRetakeResponse.statusCode, 200, kindRetakeResponse.body);
+    const kindRetake = kindRetakeResponse.json();
+    assert.notEqual(kindRetake.attemptId, attempt.attemptId);
+    assert.equal(kindRetake.questions[0].kind, 'short_answer');
+    const kindSubmission = await request(owner, 'POST', practicePath + '/save', {
+      revision: kindRetake.revision, answers, submit: true
+    });
+    assert.equal(kindSubmission.statusCode, 200, kindSubmission.body);
+    const afterKindRetake = (await request(owner, 'GET', '/progress')).json().courses.find(item => item.id === course.json().course.id);
+    assert.equal(afterKindRetake.completedPapers, beforeKindRetake.completedPapers + 1);
     const equivalents = questionPath + '/equivalences';
     const priorCoverage = (await request(owner, 'GET', '/progress')).json().courses.find(item => item.id === course.json().course.id);
     assert.equal((await request(other, 'GET', equivalents)).statusCode, 404);
