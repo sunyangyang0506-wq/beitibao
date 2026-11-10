@@ -1,0 +1,16 @@
+{
+  "datasetVersion": "synthetic-v1",
+  "split": "evaluation",
+  "papers": [
+    {"id":"eval-cs","sourceGroup":"synthetic-eval-cs","subject":"数据结构","layout":"digital_multipage","file":"eval-cs.pdf","expected":"review","pageCount":2,"textPages":[{"page":1,"contains":["Which traversal visits nodes by level?","A. Depth-first","B. Breadth-first"]},{"page":2,"contains":["Explain why binary search requires sorted input."]}]},
+    {"id":"eval-math","sourceGroup":"synthetic-eval-math","subject":"线性代数","layout":"digital","file":"eval-math.pdf","expected":"review","pageCount":1,"textPages":[{"page":1,"contains":["Find the determinant of [[2, 1], [3, 4]]."]}]},
+    {"id":"eval-physics","sourceGroup":"synthetic-eval-physics","subject":"大学物理","layout":"image_only","file":"eval-physics.pdf","expected":"review","pageCount":1,"blankTextPages":[1]},
+    {"id":"eval-broken","sourceGroup":"synthetic-eval-broken","subject":"输入校验","layout":"malformed","file":"eval-broken.pdf","expected":"failed"}
+  ],
+  "questions": [
+    {"id":"eval-cs-q1","paperId":"eval-cs","page":1,"kind":"choice","prompt":"Which traversal visits nodes by level? A. Depth-first B. Breadth-first","acceptedAnswers":["B","Breadth-first"]},
+    {"id":"eval-cs-q2","paperId":"eval-cs","page":2,"kind":"subjective","prompt":"Explain why binary search requires sorted input.","rubric":["Ordering lets the midpoint comparison rule out one half.","Without ordering, the discarded half may contain the target."]},
+    {"id":"eval-math-q1","paperId":"eval-math","page":1,"kind":"numeric","prompt":"Find the determinant of [[2, 1], [3, 4]].","acceptedAnswers":["5"]},
+    {"id":"eval-physics-q1","paperId":"eval-physics","page":1,"kind":"numeric","prompt":"A 2 kg mass accelerates at 3 m/s^2. What is the net force in N?","acceptedAnswers":["6","6 N"]}
+  ]
+}

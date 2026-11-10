@@ -1,0 +1,32 @@
+{
+  "scope": "historical-synthetic",
+  "minimumPercent": 95,
+  "comparison": ">",
+  "metrics": {
+    "evidenceSupports": {
+      "correct": 5,
+      "total": 6,
+      "passed": false
+    },
+    "solvable": {
+      "correct": 6,
+      "total": 6,
+      "passed": true
+    },
+    "answerCorrect": {
+      "correct": 6,
+      "total": 6,
+      "passed": true
+    },
+    "citationsInSourceSet": {
+      "correct": 6,
+      "total": 6,
+      "passed": true
+    }
+  },
+  "allMeasuredMetricsPassed": false,
+  "independentEvidenceSets": 0,
+  "minimumIndependentEvidenceSets": 30,
+  "realExamHitRate": null,
+  "releasePassed": false
+}

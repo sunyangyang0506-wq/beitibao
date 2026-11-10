@@ -1,0 +1,22 @@
+{
+  "minimumPapers": {
+    "test": 50,
+    "evaluation": 5
+  },
+  "subjects": [
+    {
+      "id": "data-structures",
+      "name": "数据结构"
+    },
+    {
+      "id": "linear-algebra",
+      "name": "线性代数"
+    },
+    {
+      "id": "university-physics",
+      "name": "大学物理"
+    }
+  ],
+  "scope": "all-university-paper-exam-courses",
+  "courseRegistryComplete": false
+}

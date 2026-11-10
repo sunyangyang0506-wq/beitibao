@@ -1,0 +1,47 @@
+{
+  "name": "beitibao",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "start": "node dist/server/main.js",
+    "migrate": "node scripts/migrate.mjs",
+    "invite": "node scripts/invite.mjs",
+    "test": "bash scripts/test-local.sh",
+    "coverage": "npm run build && node --test --experimental-test-coverage --test-coverage-include='dist/server/*.js' --test-coverage-exclude='dist/server/main.js' --test-coverage-exclude='dist/server/local-paper-worker.js' --test-coverage-lines=80 tests/*.test.mjs",
+    "worker:local": "node dist/server/local-paper-worker.js",
+    "eval": "npm run build --silent && node eval/run.mjs",
+    "worker:mail": "node dist/server/mail-worker.js",
+    "worker:practice-queue": "node scripts/run-practice-queue.mjs"
+  },
+  "dependencies": {
+    "@alicloud/mns": "1.2.0",
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/cors": "^11.4.1",
+    "@fastify/static": "10.1.10",
+    "@fastify/swagger": "^9.9.3",
+    "@node-rs/argon2": "^2.2.2",
+    "ali-oss": "6.23.0",
+    "fastify": "^5.12.8",
+    "nodemailer": "10.4.0",
+    "pg": "^8.23.1",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@types/ali-oss": "6.23.4",
+    "@types/node": "^26.6.6",
+    "@types/nodemailer": "8.0.2",
+    "@types/pg": "^8.23.1",
+    "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "@alicloud/mns": {
+      "xml2js": "0.6.2"
+    }
+  }
+}

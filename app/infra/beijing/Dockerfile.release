@@ -1,0 +1,31 @@
+FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS web
+WORKDIR /build
+COPY pc-prototype/package*.json ./
+RUN npm ci
+COPY pc-prototype/index.html pc-prototype/vite.config.mjs ./
+COPY pc-prototype/src ./src
+RUN npm run build:connected
+
+FROM node:24-bookworm-slim AS server
+WORKDIR /build
+COPY app/package*.json ./
+RUN npm ci
+COPY app/tsconfig.json ./
+COPY app/server ./server
+COPY app/contracts ./contracts
+RUN npm run build && npm prune --omit=dev
+
+FROM node:24-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates fonts-noto-cjk poppler-utils \
+    && apt-get clean
+WORKDIR /opt/beitibao
+COPY --from=server /build/package.json ./
+COPY --from=server /build/node_modules ./node_modules
+COPY --from=server /build/dist ./dist
+COPY --from=web /build/dist/connected ./web
+COPY app/migrations ./migrations
+COPY app/scripts ./scripts
+ENV NODE_ENV=production PORT=9000 BEITIBAO_WEB_ROOT=/opt/beitibao/web
+USER node
+EXPOSE 9000
+CMD ["node", "dist/server/main.js"]

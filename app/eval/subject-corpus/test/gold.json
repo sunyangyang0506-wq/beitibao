@@ -1,0 +1,4504 @@
+{
+  "questions": [
+    {
+      "id": "data-structures-test-01-q1",
+      "paperId": "data-structures-test-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 4、8、12，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "8"
+      ]
+    },
+    {
+      "id": "data-structures-test-01-q2",
+      "paperId": "data-structures-test-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 4、8、12，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "8"
+      ]
+    },
+    {
+      "id": "data-structures-test-01-q3",
+      "paperId": "data-structures-test-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 5 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "4"
+      ]
+    },
+    {
+      "id": "data-structures-test-02-q1",
+      "paperId": "data-structures-test-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 5、9、13，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "9"
+      ]
+    },
+    {
+      "id": "data-structures-test-02-q2",
+      "paperId": "data-structures-test-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 5、9、13，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "9"
+      ]
+    },
+    {
+      "id": "data-structures-test-02-q3",
+      "paperId": "data-structures-test-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 6 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "5"
+      ]
+    },
+    {
+      "id": "data-structures-test-03-q1",
+      "paperId": "data-structures-test-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 6、10、14，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "10"
+      ]
+    },
+    {
+      "id": "data-structures-test-03-q2",
+      "paperId": "data-structures-test-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 6、10、14，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "10"
+      ]
+    },
+    {
+      "id": "data-structures-test-03-q3",
+      "paperId": "data-structures-test-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 7 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "6"
+      ]
+    },
+    {
+      "id": "data-structures-test-04-q1",
+      "paperId": "data-structures-test-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 7、11、15，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "11"
+      ]
+    },
+    {
+      "id": "data-structures-test-04-q2",
+      "paperId": "data-structures-test-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 7、11、15，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "11"
+      ]
+    },
+    {
+      "id": "data-structures-test-04-q3",
+      "paperId": "data-structures-test-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 8 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "7"
+      ]
+    },
+    {
+      "id": "data-structures-test-05-q1",
+      "paperId": "data-structures-test-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 8、12、16，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "12"
+      ]
+    },
+    {
+      "id": "data-structures-test-05-q2",
+      "paperId": "data-structures-test-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 8、12、16，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "12"
+      ]
+    },
+    {
+      "id": "data-structures-test-05-q3",
+      "paperId": "data-structures-test-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 9 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "8"
+      ]
+    },
+    {
+      "id": "data-structures-test-06-q1",
+      "paperId": "data-structures-test-06",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 9、13、17，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "13"
+      ]
+    },
+    {
+      "id": "data-structures-test-06-q2",
+      "paperId": "data-structures-test-06",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 9、13、17，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "13"
+      ]
+    },
+    {
+      "id": "data-structures-test-06-q3",
+      "paperId": "data-structures-test-06",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 10 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "9"
+      ]
+    },
+    {
+      "id": "data-structures-test-07-q1",
+      "paperId": "data-structures-test-07",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 10、14、18，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "14"
+      ]
+    },
+    {
+      "id": "data-structures-test-07-q2",
+      "paperId": "data-structures-test-07",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 10、14、18，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "14"
+      ]
+    },
+    {
+      "id": "data-structures-test-07-q3",
+      "paperId": "data-structures-test-07",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 11 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "10"
+      ]
+    },
+    {
+      "id": "data-structures-test-08-q1",
+      "paperId": "data-structures-test-08",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 11、15、19，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "15"
+      ]
+    },
+    {
+      "id": "data-structures-test-08-q2",
+      "paperId": "data-structures-test-08",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 11、15、19，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "15"
+      ]
+    },
+    {
+      "id": "data-structures-test-08-q3",
+      "paperId": "data-structures-test-08",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 12 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "11"
+      ]
+    },
+    {
+      "id": "data-structures-test-09-q1",
+      "paperId": "data-structures-test-09",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 12、16、20，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "16"
+      ]
+    },
+    {
+      "id": "data-structures-test-09-q2",
+      "paperId": "data-structures-test-09",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 12、16、20，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "16"
+      ]
+    },
+    {
+      "id": "data-structures-test-09-q3",
+      "paperId": "data-structures-test-09",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 13 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "12"
+      ]
+    },
+    {
+      "id": "data-structures-test-10-q1",
+      "paperId": "data-structures-test-10",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 13、17、21，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "17"
+      ]
+    },
+    {
+      "id": "data-structures-test-10-q2",
+      "paperId": "data-structures-test-10",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 13、17、21，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "17"
+      ]
+    },
+    {
+      "id": "data-structures-test-10-q3",
+      "paperId": "data-structures-test-10",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 14 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "13"
+      ]
+    },
+    {
+      "id": "data-structures-test-11-q1",
+      "paperId": "data-structures-test-11",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 14、18、22，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "18"
+      ]
+    },
+    {
+      "id": "data-structures-test-11-q2",
+      "paperId": "data-structures-test-11",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 14、18、22，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "18"
+      ]
+    },
+    {
+      "id": "data-structures-test-11-q3",
+      "paperId": "data-structures-test-11",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 15 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "14"
+      ]
+    },
+    {
+      "id": "data-structures-test-12-q1",
+      "paperId": "data-structures-test-12",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 15、19、23，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "19"
+      ]
+    },
+    {
+      "id": "data-structures-test-12-q2",
+      "paperId": "data-structures-test-12",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 15、19、23，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "19"
+      ]
+    },
+    {
+      "id": "data-structures-test-12-q3",
+      "paperId": "data-structures-test-12",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 16 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "15"
+      ]
+    },
+    {
+      "id": "data-structures-test-13-q1",
+      "paperId": "data-structures-test-13",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 16、20、24，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "20"
+      ]
+    },
+    {
+      "id": "data-structures-test-13-q2",
+      "paperId": "data-structures-test-13",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 16、20、24，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "20"
+      ]
+    },
+    {
+      "id": "data-structures-test-13-q3",
+      "paperId": "data-structures-test-13",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 17 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "16"
+      ]
+    },
+    {
+      "id": "data-structures-test-14-q1",
+      "paperId": "data-structures-test-14",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 17、21、25，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "21"
+      ]
+    },
+    {
+      "id": "data-structures-test-14-q2",
+      "paperId": "data-structures-test-14",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 17、21、25，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "21"
+      ]
+    },
+    {
+      "id": "data-structures-test-14-q3",
+      "paperId": "data-structures-test-14",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 18 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "17"
+      ]
+    },
+    {
+      "id": "data-structures-test-15-q1",
+      "paperId": "data-structures-test-15",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 18、22、26，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "22"
+      ]
+    },
+    {
+      "id": "data-structures-test-15-q2",
+      "paperId": "data-structures-test-15",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 18、22、26，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "22"
+      ]
+    },
+    {
+      "id": "data-structures-test-15-q3",
+      "paperId": "data-structures-test-15",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 19 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "18"
+      ]
+    },
+    {
+      "id": "data-structures-test-16-q1",
+      "paperId": "data-structures-test-16",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 19、23、27，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "23"
+      ]
+    },
+    {
+      "id": "data-structures-test-16-q2",
+      "paperId": "data-structures-test-16",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 19、23、27，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "23"
+      ]
+    },
+    {
+      "id": "data-structures-test-16-q3",
+      "paperId": "data-structures-test-16",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 20 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "19"
+      ]
+    },
+    {
+      "id": "data-structures-test-17-q1",
+      "paperId": "data-structures-test-17",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 20、24、28，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "24"
+      ]
+    },
+    {
+      "id": "data-structures-test-17-q2",
+      "paperId": "data-structures-test-17",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 20、24、28，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "24"
+      ]
+    },
+    {
+      "id": "data-structures-test-17-q3",
+      "paperId": "data-structures-test-17",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 21 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "20"
+      ]
+    },
+    {
+      "id": "data-structures-test-18-q1",
+      "paperId": "data-structures-test-18",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 21、25、29，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "25"
+      ]
+    },
+    {
+      "id": "data-structures-test-18-q2",
+      "paperId": "data-structures-test-18",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 21、25、29，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "25"
+      ]
+    },
+    {
+      "id": "data-structures-test-18-q3",
+      "paperId": "data-structures-test-18",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 22 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "21"
+      ]
+    },
+    {
+      "id": "data-structures-test-19-q1",
+      "paperId": "data-structures-test-19",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 22、26、30，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "26"
+      ]
+    },
+    {
+      "id": "data-structures-test-19-q2",
+      "paperId": "data-structures-test-19",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 22、26、30，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "26"
+      ]
+    },
+    {
+      "id": "data-structures-test-19-q3",
+      "paperId": "data-structures-test-19",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 23 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "22"
+      ]
+    },
+    {
+      "id": "data-structures-test-20-q1",
+      "paperId": "data-structures-test-20",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 23、27、31，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "27"
+      ]
+    },
+    {
+      "id": "data-structures-test-20-q2",
+      "paperId": "data-structures-test-20",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 23、27、31，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "27"
+      ]
+    },
+    {
+      "id": "data-structures-test-20-q3",
+      "paperId": "data-structures-test-20",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 24 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "23"
+      ]
+    },
+    {
+      "id": "data-structures-test-21-q1",
+      "paperId": "data-structures-test-21",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 24、28、32，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "28"
+      ]
+    },
+    {
+      "id": "data-structures-test-21-q2",
+      "paperId": "data-structures-test-21",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 24、28、32，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "28"
+      ]
+    },
+    {
+      "id": "data-structures-test-21-q3",
+      "paperId": "data-structures-test-21",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 25 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "24"
+      ]
+    },
+    {
+      "id": "data-structures-test-22-q1",
+      "paperId": "data-structures-test-22",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 25、29、33，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "29"
+      ]
+    },
+    {
+      "id": "data-structures-test-22-q2",
+      "paperId": "data-structures-test-22",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 25、29、33，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "29"
+      ]
+    },
+    {
+      "id": "data-structures-test-22-q3",
+      "paperId": "data-structures-test-22",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 26 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "25"
+      ]
+    },
+    {
+      "id": "data-structures-test-23-q1",
+      "paperId": "data-structures-test-23",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 26、30、34，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "30"
+      ]
+    },
+    {
+      "id": "data-structures-test-23-q2",
+      "paperId": "data-structures-test-23",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 26、30、34，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "30"
+      ]
+    },
+    {
+      "id": "data-structures-test-23-q3",
+      "paperId": "data-structures-test-23",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 27 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "26"
+      ]
+    },
+    {
+      "id": "data-structures-test-24-q1",
+      "paperId": "data-structures-test-24",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 27、31、35，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "31"
+      ]
+    },
+    {
+      "id": "data-structures-test-24-q2",
+      "paperId": "data-structures-test-24",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 27、31、35，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "31"
+      ]
+    },
+    {
+      "id": "data-structures-test-24-q3",
+      "paperId": "data-structures-test-24",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 28 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "27"
+      ]
+    },
+    {
+      "id": "data-structures-test-25-q1",
+      "paperId": "data-structures-test-25",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 28、32、36，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "32"
+      ]
+    },
+    {
+      "id": "data-structures-test-25-q2",
+      "paperId": "data-structures-test-25",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 28、32、36，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "32"
+      ]
+    },
+    {
+      "id": "data-structures-test-25-q3",
+      "paperId": "data-structures-test-25",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 29 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "28"
+      ]
+    },
+    {
+      "id": "data-structures-test-26-q1",
+      "paperId": "data-structures-test-26",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 29、33、37，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "33"
+      ]
+    },
+    {
+      "id": "data-structures-test-26-q2",
+      "paperId": "data-structures-test-26",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 29、33、37，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "33"
+      ]
+    },
+    {
+      "id": "data-structures-test-26-q3",
+      "paperId": "data-structures-test-26",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 30 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "29"
+      ]
+    },
+    {
+      "id": "data-structures-test-27-q1",
+      "paperId": "data-structures-test-27",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 30、34、38，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "34"
+      ]
+    },
+    {
+      "id": "data-structures-test-27-q2",
+      "paperId": "data-structures-test-27",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 30、34、38，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "34"
+      ]
+    },
+    {
+      "id": "data-structures-test-27-q3",
+      "paperId": "data-structures-test-27",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 31 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "30"
+      ]
+    },
+    {
+      "id": "data-structures-test-28-q1",
+      "paperId": "data-structures-test-28",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 31、35、39，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "35"
+      ]
+    },
+    {
+      "id": "data-structures-test-28-q2",
+      "paperId": "data-structures-test-28",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 31、35、39，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "35"
+      ]
+    },
+    {
+      "id": "data-structures-test-28-q3",
+      "paperId": "data-structures-test-28",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 32 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "31"
+      ]
+    },
+    {
+      "id": "data-structures-test-29-q1",
+      "paperId": "data-structures-test-29",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 32、36、40，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "36"
+      ]
+    },
+    {
+      "id": "data-structures-test-29-q2",
+      "paperId": "data-structures-test-29",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 32、36、40，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "36"
+      ]
+    },
+    {
+      "id": "data-structures-test-29-q3",
+      "paperId": "data-structures-test-29",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 33 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "32"
+      ]
+    },
+    {
+      "id": "data-structures-test-30-q1",
+      "paperId": "data-structures-test-30",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 33、37、41，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "37"
+      ]
+    },
+    {
+      "id": "data-structures-test-30-q2",
+      "paperId": "data-structures-test-30",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 33、37、41，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "37"
+      ]
+    },
+    {
+      "id": "data-structures-test-30-q3",
+      "paperId": "data-structures-test-30",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 34 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "33"
+      ]
+    },
+    {
+      "id": "data-structures-test-31-q1",
+      "paperId": "data-structures-test-31",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 34、38、42，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "38"
+      ]
+    },
+    {
+      "id": "data-structures-test-31-q2",
+      "paperId": "data-structures-test-31",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 34、38、42，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "38"
+      ]
+    },
+    {
+      "id": "data-structures-test-31-q3",
+      "paperId": "data-structures-test-31",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 35 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "34"
+      ]
+    },
+    {
+      "id": "data-structures-test-32-q1",
+      "paperId": "data-structures-test-32",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 35、39、43，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "39"
+      ]
+    },
+    {
+      "id": "data-structures-test-32-q2",
+      "paperId": "data-structures-test-32",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 35、39、43，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "39"
+      ]
+    },
+    {
+      "id": "data-structures-test-32-q3",
+      "paperId": "data-structures-test-32",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 36 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "35"
+      ]
+    },
+    {
+      "id": "data-structures-test-33-q1",
+      "paperId": "data-structures-test-33",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 36、40、44，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "40"
+      ]
+    },
+    {
+      "id": "data-structures-test-33-q2",
+      "paperId": "data-structures-test-33",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 36、40、44，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "40"
+      ]
+    },
+    {
+      "id": "data-structures-test-33-q3",
+      "paperId": "data-structures-test-33",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 37 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "36"
+      ]
+    },
+    {
+      "id": "data-structures-test-34-q1",
+      "paperId": "data-structures-test-34",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 37、41、45，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "41"
+      ]
+    },
+    {
+      "id": "data-structures-test-34-q2",
+      "paperId": "data-structures-test-34",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 37、41、45，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "41"
+      ]
+    },
+    {
+      "id": "data-structures-test-34-q3",
+      "paperId": "data-structures-test-34",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 38 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "37"
+      ]
+    },
+    {
+      "id": "data-structures-test-35-q1",
+      "paperId": "data-structures-test-35",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 38、42、46，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "42"
+      ]
+    },
+    {
+      "id": "data-structures-test-35-q2",
+      "paperId": "data-structures-test-35",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 38、42、46，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "42"
+      ]
+    },
+    {
+      "id": "data-structures-test-35-q3",
+      "paperId": "data-structures-test-35",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 39 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "38"
+      ]
+    },
+    {
+      "id": "data-structures-test-36-q1",
+      "paperId": "data-structures-test-36",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 39、43、47，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "43"
+      ]
+    },
+    {
+      "id": "data-structures-test-36-q2",
+      "paperId": "data-structures-test-36",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 39、43、47，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "43"
+      ]
+    },
+    {
+      "id": "data-structures-test-36-q3",
+      "paperId": "data-structures-test-36",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 40 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "39"
+      ]
+    },
+    {
+      "id": "data-structures-test-37-q1",
+      "paperId": "data-structures-test-37",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 40、44、48，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "44"
+      ]
+    },
+    {
+      "id": "data-structures-test-37-q2",
+      "paperId": "data-structures-test-37",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 40、44、48，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "44"
+      ]
+    },
+    {
+      "id": "data-structures-test-37-q3",
+      "paperId": "data-structures-test-37",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 41 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "40"
+      ]
+    },
+    {
+      "id": "data-structures-test-38-q1",
+      "paperId": "data-structures-test-38",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 41、45、49，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "45"
+      ]
+    },
+    {
+      "id": "data-structures-test-38-q2",
+      "paperId": "data-structures-test-38",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 41、45、49，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "45"
+      ]
+    },
+    {
+      "id": "data-structures-test-38-q3",
+      "paperId": "data-structures-test-38",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 42 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "41"
+      ]
+    },
+    {
+      "id": "data-structures-test-39-q1",
+      "paperId": "data-structures-test-39",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 42、46、50，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "46"
+      ]
+    },
+    {
+      "id": "data-structures-test-39-q2",
+      "paperId": "data-structures-test-39",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 42、46、50，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "46"
+      ]
+    },
+    {
+      "id": "data-structures-test-39-q3",
+      "paperId": "data-structures-test-39",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 43 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "42"
+      ]
+    },
+    {
+      "id": "data-structures-test-40-q1",
+      "paperId": "data-structures-test-40",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 43、47、51，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "47"
+      ]
+    },
+    {
+      "id": "data-structures-test-40-q2",
+      "paperId": "data-structures-test-40",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 43、47、51，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "47"
+      ]
+    },
+    {
+      "id": "data-structures-test-40-q3",
+      "paperId": "data-structures-test-40",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 44 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "43"
+      ]
+    },
+    {
+      "id": "data-structures-test-41-q1",
+      "paperId": "data-structures-test-41",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 44、48、52，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "48"
+      ]
+    },
+    {
+      "id": "data-structures-test-41-q2",
+      "paperId": "data-structures-test-41",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 44、48、52，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "48"
+      ]
+    },
+    {
+      "id": "data-structures-test-41-q3",
+      "paperId": "data-structures-test-41",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 45 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "44"
+      ]
+    },
+    {
+      "id": "data-structures-test-42-q1",
+      "paperId": "data-structures-test-42",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 45、49、53，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "49"
+      ]
+    },
+    {
+      "id": "data-structures-test-42-q2",
+      "paperId": "data-structures-test-42",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 45、49、53，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "49"
+      ]
+    },
+    {
+      "id": "data-structures-test-42-q3",
+      "paperId": "data-structures-test-42",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 46 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "45"
+      ]
+    },
+    {
+      "id": "data-structures-test-43-q1",
+      "paperId": "data-structures-test-43",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 46、50、54，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "50"
+      ]
+    },
+    {
+      "id": "data-structures-test-43-q2",
+      "paperId": "data-structures-test-43",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 46、50、54，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "50"
+      ]
+    },
+    {
+      "id": "data-structures-test-43-q3",
+      "paperId": "data-structures-test-43",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 47 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "46"
+      ]
+    },
+    {
+      "id": "data-structures-test-44-q1",
+      "paperId": "data-structures-test-44",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 47、51、55，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "51"
+      ]
+    },
+    {
+      "id": "data-structures-test-44-q2",
+      "paperId": "data-structures-test-44",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 47、51、55，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "51"
+      ]
+    },
+    {
+      "id": "data-structures-test-44-q3",
+      "paperId": "data-structures-test-44",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 48 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "47"
+      ]
+    },
+    {
+      "id": "data-structures-test-45-q1",
+      "paperId": "data-structures-test-45",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 48、52、56，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "52"
+      ]
+    },
+    {
+      "id": "data-structures-test-45-q2",
+      "paperId": "data-structures-test-45",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 48、52、56，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "52"
+      ]
+    },
+    {
+      "id": "data-structures-test-45-q3",
+      "paperId": "data-structures-test-45",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 49 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "48"
+      ]
+    },
+    {
+      "id": "data-structures-test-46-q1",
+      "paperId": "data-structures-test-46",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 49、53、57，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "53"
+      ]
+    },
+    {
+      "id": "data-structures-test-46-q2",
+      "paperId": "data-structures-test-46",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 49、53、57，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "53"
+      ]
+    },
+    {
+      "id": "data-structures-test-46-q3",
+      "paperId": "data-structures-test-46",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 50 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "49"
+      ]
+    },
+    {
+      "id": "data-structures-test-47-q1",
+      "paperId": "data-structures-test-47",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 50、54、58，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "54"
+      ]
+    },
+    {
+      "id": "data-structures-test-47-q2",
+      "paperId": "data-structures-test-47",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 50、54、58，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "54"
+      ]
+    },
+    {
+      "id": "data-structures-test-47-q3",
+      "paperId": "data-structures-test-47",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 51 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "50"
+      ]
+    },
+    {
+      "id": "data-structures-test-48-q1",
+      "paperId": "data-structures-test-48",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 51、55、59，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "55"
+      ]
+    },
+    {
+      "id": "data-structures-test-48-q2",
+      "paperId": "data-structures-test-48",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 51、55、59，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "55"
+      ]
+    },
+    {
+      "id": "data-structures-test-48-q3",
+      "paperId": "data-structures-test-48",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 52 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "51"
+      ]
+    },
+    {
+      "id": "data-structures-test-49-q1",
+      "paperId": "data-structures-test-49",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 52、56、60，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "56"
+      ]
+    },
+    {
+      "id": "data-structures-test-49-q2",
+      "paperId": "data-structures-test-49",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 52、56、60，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "56"
+      ]
+    },
+    {
+      "id": "data-structures-test-49-q3",
+      "paperId": "data-structures-test-49",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 53 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "52"
+      ]
+    },
+    {
+      "id": "data-structures-test-50-q1",
+      "paperId": "data-structures-test-50",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空栈依次压入 53、57、61，弹出一次后再读栈顶。栈顶是多少？",
+      "acceptedAnswers": [
+        "57"
+      ]
+    },
+    {
+      "id": "data-structures-test-50-q2",
+      "paperId": "data-structures-test-50",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "空队列依次入队 53、57、61，连续出队两次。第二次出队的值是多少？",
+      "acceptedAnswers": [
+        "57"
+      ]
+    },
+    {
+      "id": "data-structures-test-50-q3",
+      "paperId": "data-structures-test-50",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "顺序表已有 54 个元素，在第 2 个位置插入一个元素。需后移多少个原元素？",
+      "acceptedAnswers": [
+        "53"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-01-q1",
+      "paperId": "linear-algebra-test-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (3, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "9"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-01-q2",
+      "paperId": "linear-algebra-test-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 8，x - y = 2。求 x。",
+      "acceptedAnswers": [
+        "5"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-01-q3",
+      "paperId": "linear-algebra-test-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (2, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "6"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-02-q1",
+      "paperId": "linear-algebra-test-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (4, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "13"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-02-q2",
+      "paperId": "linear-algebra-test-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 9，x - y = 3。求 x。",
+      "acceptedAnswers": [
+        "6"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-02-q3",
+      "paperId": "linear-algebra-test-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (3, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "9"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-03-q1",
+      "paperId": "linear-algebra-test-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (5, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "17"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-03-q2",
+      "paperId": "linear-algebra-test-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 10，x - y = 4。求 x。",
+      "acceptedAnswers": [
+        "7"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-03-q3",
+      "paperId": "linear-algebra-test-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (4, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "12"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-04-q1",
+      "paperId": "linear-algebra-test-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (6, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "21"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-04-q2",
+      "paperId": "linear-algebra-test-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 11，x - y = 5。求 x。",
+      "acceptedAnswers": [
+        "8"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-04-q3",
+      "paperId": "linear-algebra-test-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (5, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "15"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-05-q1",
+      "paperId": "linear-algebra-test-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (7, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "25"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-05-q2",
+      "paperId": "linear-algebra-test-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 12，x - y = 6。求 x。",
+      "acceptedAnswers": [
+        "9"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-05-q3",
+      "paperId": "linear-algebra-test-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (6, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "18"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-06-q1",
+      "paperId": "linear-algebra-test-06",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (8, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "29"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-06-q2",
+      "paperId": "linear-algebra-test-06",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 13，x - y = 7。求 x。",
+      "acceptedAnswers": [
+        "10"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-06-q3",
+      "paperId": "linear-algebra-test-06",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (7, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "21"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-07-q1",
+      "paperId": "linear-algebra-test-07",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (9, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "33"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-07-q2",
+      "paperId": "linear-algebra-test-07",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 14，x - y = 8。求 x。",
+      "acceptedAnswers": [
+        "11"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-07-q3",
+      "paperId": "linear-algebra-test-07",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (8, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "24"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-08-q1",
+      "paperId": "linear-algebra-test-08",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (10, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "37"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-08-q2",
+      "paperId": "linear-algebra-test-08",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 15，x - y = 9。求 x。",
+      "acceptedAnswers": [
+        "12"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-08-q3",
+      "paperId": "linear-algebra-test-08",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (9, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "27"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-09-q1",
+      "paperId": "linear-algebra-test-09",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (11, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "41"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-09-q2",
+      "paperId": "linear-algebra-test-09",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 16，x - y = 10。求 x。",
+      "acceptedAnswers": [
+        "13"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-09-q3",
+      "paperId": "linear-algebra-test-09",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (10, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "30"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-10-q1",
+      "paperId": "linear-algebra-test-10",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (12, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "45"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-10-q2",
+      "paperId": "linear-algebra-test-10",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 17，x - y = 11。求 x。",
+      "acceptedAnswers": [
+        "14"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-10-q3",
+      "paperId": "linear-algebra-test-10",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (11, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "33"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-11-q1",
+      "paperId": "linear-algebra-test-11",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (13, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "49"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-11-q2",
+      "paperId": "linear-algebra-test-11",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 18，x - y = 12。求 x。",
+      "acceptedAnswers": [
+        "15"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-11-q3",
+      "paperId": "linear-algebra-test-11",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (12, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "36"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-12-q1",
+      "paperId": "linear-algebra-test-12",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (14, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "53"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-12-q2",
+      "paperId": "linear-algebra-test-12",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 19，x - y = 13。求 x。",
+      "acceptedAnswers": [
+        "16"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-12-q3",
+      "paperId": "linear-algebra-test-12",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (13, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "39"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-13-q1",
+      "paperId": "linear-algebra-test-13",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (15, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "57"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-13-q2",
+      "paperId": "linear-algebra-test-13",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 20，x - y = 14。求 x。",
+      "acceptedAnswers": [
+        "17"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-13-q3",
+      "paperId": "linear-algebra-test-13",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (14, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "42"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-14-q1",
+      "paperId": "linear-algebra-test-14",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (16, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "61"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-14-q2",
+      "paperId": "linear-algebra-test-14",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 21，x - y = 15。求 x。",
+      "acceptedAnswers": [
+        "18"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-14-q3",
+      "paperId": "linear-algebra-test-14",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (15, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "45"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-15-q1",
+      "paperId": "linear-algebra-test-15",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (17, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "65"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-15-q2",
+      "paperId": "linear-algebra-test-15",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 22，x - y = 16。求 x。",
+      "acceptedAnswers": [
+        "19"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-15-q3",
+      "paperId": "linear-algebra-test-15",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (16, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "48"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-16-q1",
+      "paperId": "linear-algebra-test-16",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (18, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "69"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-16-q2",
+      "paperId": "linear-algebra-test-16",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 23，x - y = 17。求 x。",
+      "acceptedAnswers": [
+        "20"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-16-q3",
+      "paperId": "linear-algebra-test-16",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (17, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "51"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-17-q1",
+      "paperId": "linear-algebra-test-17",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (19, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "73"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-17-q2",
+      "paperId": "linear-algebra-test-17",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 24，x - y = 18。求 x。",
+      "acceptedAnswers": [
+        "21"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-17-q3",
+      "paperId": "linear-algebra-test-17",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (18, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "54"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-18-q1",
+      "paperId": "linear-algebra-test-18",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (20, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "77"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-18-q2",
+      "paperId": "linear-algebra-test-18",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 25，x - y = 19。求 x。",
+      "acceptedAnswers": [
+        "22"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-18-q3",
+      "paperId": "linear-algebra-test-18",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (19, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "57"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-19-q1",
+      "paperId": "linear-algebra-test-19",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (21, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "81"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-19-q2",
+      "paperId": "linear-algebra-test-19",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 26，x - y = 20。求 x。",
+      "acceptedAnswers": [
+        "23"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-19-q3",
+      "paperId": "linear-algebra-test-19",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (20, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "60"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-20-q1",
+      "paperId": "linear-algebra-test-20",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (22, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "85"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-20-q2",
+      "paperId": "linear-algebra-test-20",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 27，x - y = 21。求 x。",
+      "acceptedAnswers": [
+        "24"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-20-q3",
+      "paperId": "linear-algebra-test-20",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (21, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "63"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-21-q1",
+      "paperId": "linear-algebra-test-21",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (23, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "89"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-21-q2",
+      "paperId": "linear-algebra-test-21",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 28，x - y = 22。求 x。",
+      "acceptedAnswers": [
+        "25"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-21-q3",
+      "paperId": "linear-algebra-test-21",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (22, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "66"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-22-q1",
+      "paperId": "linear-algebra-test-22",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (24, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "93"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-22-q2",
+      "paperId": "linear-algebra-test-22",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 29，x - y = 23。求 x。",
+      "acceptedAnswers": [
+        "26"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-22-q3",
+      "paperId": "linear-algebra-test-22",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (23, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "69"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-23-q1",
+      "paperId": "linear-algebra-test-23",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (25, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "97"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-23-q2",
+      "paperId": "linear-algebra-test-23",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 30，x - y = 24。求 x。",
+      "acceptedAnswers": [
+        "27"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-23-q3",
+      "paperId": "linear-algebra-test-23",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (24, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "72"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-24-q1",
+      "paperId": "linear-algebra-test-24",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (26, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "101"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-24-q2",
+      "paperId": "linear-algebra-test-24",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 31，x - y = 25。求 x。",
+      "acceptedAnswers": [
+        "28"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-24-q3",
+      "paperId": "linear-algebra-test-24",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (25, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "75"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-25-q1",
+      "paperId": "linear-algebra-test-25",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (27, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "105"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-25-q2",
+      "paperId": "linear-algebra-test-25",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 32，x - y = 26。求 x。",
+      "acceptedAnswers": [
+        "29"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-25-q3",
+      "paperId": "linear-algebra-test-25",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (26, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "78"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-26-q1",
+      "paperId": "linear-algebra-test-26",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (28, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "109"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-26-q2",
+      "paperId": "linear-algebra-test-26",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 33，x - y = 27。求 x。",
+      "acceptedAnswers": [
+        "30"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-26-q3",
+      "paperId": "linear-algebra-test-26",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (27, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "81"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-27-q1",
+      "paperId": "linear-algebra-test-27",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (29, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "113"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-27-q2",
+      "paperId": "linear-algebra-test-27",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 34，x - y = 28。求 x。",
+      "acceptedAnswers": [
+        "31"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-27-q3",
+      "paperId": "linear-algebra-test-27",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (28, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "84"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-28-q1",
+      "paperId": "linear-algebra-test-28",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (30, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "117"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-28-q2",
+      "paperId": "linear-algebra-test-28",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 35，x - y = 29。求 x。",
+      "acceptedAnswers": [
+        "32"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-28-q3",
+      "paperId": "linear-algebra-test-28",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (29, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "87"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-29-q1",
+      "paperId": "linear-algebra-test-29",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (31, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "121"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-29-q2",
+      "paperId": "linear-algebra-test-29",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 36，x - y = 30。求 x。",
+      "acceptedAnswers": [
+        "33"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-29-q3",
+      "paperId": "linear-algebra-test-29",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (30, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "90"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-30-q1",
+      "paperId": "linear-algebra-test-30",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (32, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "125"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-30-q2",
+      "paperId": "linear-algebra-test-30",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 37，x - y = 31。求 x。",
+      "acceptedAnswers": [
+        "34"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-30-q3",
+      "paperId": "linear-algebra-test-30",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (31, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "93"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-31-q1",
+      "paperId": "linear-algebra-test-31",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (33, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "129"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-31-q2",
+      "paperId": "linear-algebra-test-31",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 38，x - y = 32。求 x。",
+      "acceptedAnswers": [
+        "35"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-31-q3",
+      "paperId": "linear-algebra-test-31",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (32, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "96"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-32-q1",
+      "paperId": "linear-algebra-test-32",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (34, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "133"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-32-q2",
+      "paperId": "linear-algebra-test-32",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 39，x - y = 33。求 x。",
+      "acceptedAnswers": [
+        "36"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-32-q3",
+      "paperId": "linear-algebra-test-32",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (33, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "99"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-33-q1",
+      "paperId": "linear-algebra-test-33",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (35, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "137"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-33-q2",
+      "paperId": "linear-algebra-test-33",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 40，x - y = 34。求 x。",
+      "acceptedAnswers": [
+        "37"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-33-q3",
+      "paperId": "linear-algebra-test-33",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (34, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "102"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-34-q1",
+      "paperId": "linear-algebra-test-34",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (36, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "141"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-34-q2",
+      "paperId": "linear-algebra-test-34",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 41，x - y = 35。求 x。",
+      "acceptedAnswers": [
+        "38"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-34-q3",
+      "paperId": "linear-algebra-test-34",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (35, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "105"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-35-q1",
+      "paperId": "linear-algebra-test-35",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (37, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "145"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-35-q2",
+      "paperId": "linear-algebra-test-35",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 42，x - y = 36。求 x。",
+      "acceptedAnswers": [
+        "39"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-35-q3",
+      "paperId": "linear-algebra-test-35",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (36, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "108"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-36-q1",
+      "paperId": "linear-algebra-test-36",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (38, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "149"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-36-q2",
+      "paperId": "linear-algebra-test-36",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 43，x - y = 37。求 x。",
+      "acceptedAnswers": [
+        "40"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-36-q3",
+      "paperId": "linear-algebra-test-36",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (37, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "111"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-37-q1",
+      "paperId": "linear-algebra-test-37",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (39, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "153"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-37-q2",
+      "paperId": "linear-algebra-test-37",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 44，x - y = 38。求 x。",
+      "acceptedAnswers": [
+        "41"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-37-q3",
+      "paperId": "linear-algebra-test-37",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (38, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "114"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-38-q1",
+      "paperId": "linear-algebra-test-38",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (40, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "157"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-38-q2",
+      "paperId": "linear-algebra-test-38",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 45，x - y = 39。求 x。",
+      "acceptedAnswers": [
+        "42"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-38-q3",
+      "paperId": "linear-algebra-test-38",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (39, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "117"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-39-q1",
+      "paperId": "linear-algebra-test-39",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (41, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "161"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-39-q2",
+      "paperId": "linear-algebra-test-39",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 46，x - y = 40。求 x。",
+      "acceptedAnswers": [
+        "43"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-39-q3",
+      "paperId": "linear-algebra-test-39",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (40, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "120"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-40-q1",
+      "paperId": "linear-algebra-test-40",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (42, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "165"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-40-q2",
+      "paperId": "linear-algebra-test-40",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 47，x - y = 41。求 x。",
+      "acceptedAnswers": [
+        "44"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-40-q3",
+      "paperId": "linear-algebra-test-40",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (41, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "123"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-41-q1",
+      "paperId": "linear-algebra-test-41",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (43, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "169"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-41-q2",
+      "paperId": "linear-algebra-test-41",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 48，x - y = 42。求 x。",
+      "acceptedAnswers": [
+        "45"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-41-q3",
+      "paperId": "linear-algebra-test-41",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (42, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "126"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-42-q1",
+      "paperId": "linear-algebra-test-42",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (44, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "173"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-42-q2",
+      "paperId": "linear-algebra-test-42",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 49，x - y = 43。求 x。",
+      "acceptedAnswers": [
+        "46"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-42-q3",
+      "paperId": "linear-algebra-test-42",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (43, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "129"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-43-q1",
+      "paperId": "linear-algebra-test-43",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (45, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "177"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-43-q2",
+      "paperId": "linear-algebra-test-43",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 50，x - y = 44。求 x。",
+      "acceptedAnswers": [
+        "47"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-43-q3",
+      "paperId": "linear-algebra-test-43",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (44, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "132"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-44-q1",
+      "paperId": "linear-algebra-test-44",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (46, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "181"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-44-q2",
+      "paperId": "linear-algebra-test-44",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 51，x - y = 45。求 x。",
+      "acceptedAnswers": [
+        "48"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-44-q3",
+      "paperId": "linear-algebra-test-44",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (45, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "135"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-45-q1",
+      "paperId": "linear-algebra-test-45",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (47, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "185"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-45-q2",
+      "paperId": "linear-algebra-test-45",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 52，x - y = 46。求 x。",
+      "acceptedAnswers": [
+        "49"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-45-q3",
+      "paperId": "linear-algebra-test-45",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (46, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "138"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-46-q1",
+      "paperId": "linear-algebra-test-46",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (48, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "189"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-46-q2",
+      "paperId": "linear-algebra-test-46",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 53，x - y = 47。求 x。",
+      "acceptedAnswers": [
+        "50"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-46-q3",
+      "paperId": "linear-algebra-test-46",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (47, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "141"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-47-q1",
+      "paperId": "linear-algebra-test-47",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (49, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "193"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-47-q2",
+      "paperId": "linear-algebra-test-47",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 54，x - y = 48。求 x。",
+      "acceptedAnswers": [
+        "51"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-47-q3",
+      "paperId": "linear-algebra-test-47",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (48, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "144"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-48-q1",
+      "paperId": "linear-algebra-test-48",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (50, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "197"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-48-q2",
+      "paperId": "linear-algebra-test-48",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 55，x - y = 49。求 x。",
+      "acceptedAnswers": [
+        "52"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-48-q3",
+      "paperId": "linear-algebra-test-48",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (49, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "147"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-49-q1",
+      "paperId": "linear-algebra-test-49",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (51, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "201"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-49-q2",
+      "paperId": "linear-algebra-test-49",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 56，x - y = 50。求 x。",
+      "acceptedAnswers": [
+        "53"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-49-q3",
+      "paperId": "linear-algebra-test-49",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (50, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "150"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-50-q1",
+      "paperId": "linear-algebra-test-50",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵的第一行为 (52, 1)，第二行为 (3, 4)。行列式是多少？",
+      "acceptedAnswers": [
+        "205"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-50-q2",
+      "paperId": "linear-algebra-test-50",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "线性方程组 x + y = 57，x - y = 51。求 x。",
+      "acceptedAnswers": [
+        "54"
+      ]
+    },
+    {
+      "id": "linear-algebra-test-50-q3",
+      "paperId": "linear-algebra-test-50",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "矩阵 A 的第一行为 (51, 2)，第二行为 (3, 4)。求 3A 的左上角元素。",
+      "acceptedAnswers": [
+        "153"
+      ]
+    },
+    {
+      "id": "university-physics-test-01-q1",
+      "paperId": "university-physics-test-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 2 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "6"
+      ]
+    },
+    {
+      "id": "university-physics-test-01-q2",
+      "paperId": "university-physics-test-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 3 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "6"
+      ]
+    },
+    {
+      "id": "university-physics-test-01-q3",
+      "paperId": "university-physics-test-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 6 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "18"
+      ]
+    },
+    {
+      "id": "university-physics-test-02-q1",
+      "paperId": "university-physics-test-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 3 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "9"
+      ]
+    },
+    {
+      "id": "university-physics-test-02-q2",
+      "paperId": "university-physics-test-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 4 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "8"
+      ]
+    },
+    {
+      "id": "university-physics-test-02-q3",
+      "paperId": "university-physics-test-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 7 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "21"
+      ]
+    },
+    {
+      "id": "university-physics-test-03-q1",
+      "paperId": "university-physics-test-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 4 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "12"
+      ]
+    },
+    {
+      "id": "university-physics-test-03-q2",
+      "paperId": "university-physics-test-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 5 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "10"
+      ]
+    },
+    {
+      "id": "university-physics-test-03-q3",
+      "paperId": "university-physics-test-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 8 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "24"
+      ]
+    },
+    {
+      "id": "university-physics-test-04-q1",
+      "paperId": "university-physics-test-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 5 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "15"
+      ]
+    },
+    {
+      "id": "university-physics-test-04-q2",
+      "paperId": "university-physics-test-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 6 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "12"
+      ]
+    },
+    {
+      "id": "university-physics-test-04-q3",
+      "paperId": "university-physics-test-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 9 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "27"
+      ]
+    },
+    {
+      "id": "university-physics-test-05-q1",
+      "paperId": "university-physics-test-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 6 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "18"
+      ]
+    },
+    {
+      "id": "university-physics-test-05-q2",
+      "paperId": "university-physics-test-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 7 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "14"
+      ]
+    },
+    {
+      "id": "university-physics-test-05-q3",
+      "paperId": "university-physics-test-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 10 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "30"
+      ]
+    },
+    {
+      "id": "university-physics-test-06-q1",
+      "paperId": "university-physics-test-06",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 7 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "21"
+      ]
+    },
+    {
+      "id": "university-physics-test-06-q2",
+      "paperId": "university-physics-test-06",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 8 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "16"
+      ]
+    },
+    {
+      "id": "university-physics-test-06-q3",
+      "paperId": "university-physics-test-06",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 11 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "33"
+      ]
+    },
+    {
+      "id": "university-physics-test-07-q1",
+      "paperId": "university-physics-test-07",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 8 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "24"
+      ]
+    },
+    {
+      "id": "university-physics-test-07-q2",
+      "paperId": "university-physics-test-07",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 9 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "18"
+      ]
+    },
+    {
+      "id": "university-physics-test-07-q3",
+      "paperId": "university-physics-test-07",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 12 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "36"
+      ]
+    },
+    {
+      "id": "university-physics-test-08-q1",
+      "paperId": "university-physics-test-08",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 9 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "27"
+      ]
+    },
+    {
+      "id": "university-physics-test-08-q2",
+      "paperId": "university-physics-test-08",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 10 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "20"
+      ]
+    },
+    {
+      "id": "university-physics-test-08-q3",
+      "paperId": "university-physics-test-08",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 13 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "39"
+      ]
+    },
+    {
+      "id": "university-physics-test-09-q1",
+      "paperId": "university-physics-test-09",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 10 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "30"
+      ]
+    },
+    {
+      "id": "university-physics-test-09-q2",
+      "paperId": "university-physics-test-09",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 11 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "22"
+      ]
+    },
+    {
+      "id": "university-physics-test-09-q3",
+      "paperId": "university-physics-test-09",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 14 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "42"
+      ]
+    },
+    {
+      "id": "university-physics-test-10-q1",
+      "paperId": "university-physics-test-10",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 11 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "33"
+      ]
+    },
+    {
+      "id": "university-physics-test-10-q2",
+      "paperId": "university-physics-test-10",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 12 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "24"
+      ]
+    },
+    {
+      "id": "university-physics-test-10-q3",
+      "paperId": "university-physics-test-10",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 15 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "45"
+      ]
+    },
+    {
+      "id": "university-physics-test-11-q1",
+      "paperId": "university-physics-test-11",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 12 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "36"
+      ]
+    },
+    {
+      "id": "university-physics-test-11-q2",
+      "paperId": "university-physics-test-11",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 13 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "26"
+      ]
+    },
+    {
+      "id": "university-physics-test-11-q3",
+      "paperId": "university-physics-test-11",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 16 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "48"
+      ]
+    },
+    {
+      "id": "university-physics-test-12-q1",
+      "paperId": "university-physics-test-12",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 13 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "39"
+      ]
+    },
+    {
+      "id": "university-physics-test-12-q2",
+      "paperId": "university-physics-test-12",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 14 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "28"
+      ]
+    },
+    {
+      "id": "university-physics-test-12-q3",
+      "paperId": "university-physics-test-12",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 17 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "51"
+      ]
+    },
+    {
+      "id": "university-physics-test-13-q1",
+      "paperId": "university-physics-test-13",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 14 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "42"
+      ]
+    },
+    {
+      "id": "university-physics-test-13-q2",
+      "paperId": "university-physics-test-13",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 15 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "30"
+      ]
+    },
+    {
+      "id": "university-physics-test-13-q3",
+      "paperId": "university-physics-test-13",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 18 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "54"
+      ]
+    },
+    {
+      "id": "university-physics-test-14-q1",
+      "paperId": "university-physics-test-14",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 15 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "45"
+      ]
+    },
+    {
+      "id": "university-physics-test-14-q2",
+      "paperId": "university-physics-test-14",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 16 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "32"
+      ]
+    },
+    {
+      "id": "university-physics-test-14-q3",
+      "paperId": "university-physics-test-14",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 19 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "57"
+      ]
+    },
+    {
+      "id": "university-physics-test-15-q1",
+      "paperId": "university-physics-test-15",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 16 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "48"
+      ]
+    },
+    {
+      "id": "university-physics-test-15-q2",
+      "paperId": "university-physics-test-15",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 17 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "34"
+      ]
+    },
+    {
+      "id": "university-physics-test-15-q3",
+      "paperId": "university-physics-test-15",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 20 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "60"
+      ]
+    },
+    {
+      "id": "university-physics-test-16-q1",
+      "paperId": "university-physics-test-16",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 17 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "51"
+      ]
+    },
+    {
+      "id": "university-physics-test-16-q2",
+      "paperId": "university-physics-test-16",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 18 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "36"
+      ]
+    },
+    {
+      "id": "university-physics-test-16-q3",
+      "paperId": "university-physics-test-16",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 21 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "63"
+      ]
+    },
+    {
+      "id": "university-physics-test-17-q1",
+      "paperId": "university-physics-test-17",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 18 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "54"
+      ]
+    },
+    {
+      "id": "university-physics-test-17-q2",
+      "paperId": "university-physics-test-17",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 19 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "38"
+      ]
+    },
+    {
+      "id": "university-physics-test-17-q3",
+      "paperId": "university-physics-test-17",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 22 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "66"
+      ]
+    },
+    {
+      "id": "university-physics-test-18-q1",
+      "paperId": "university-physics-test-18",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 19 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "57"
+      ]
+    },
+    {
+      "id": "university-physics-test-18-q2",
+      "paperId": "university-physics-test-18",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 20 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "40"
+      ]
+    },
+    {
+      "id": "university-physics-test-18-q3",
+      "paperId": "university-physics-test-18",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 23 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "69"
+      ]
+    },
+    {
+      "id": "university-physics-test-19-q1",
+      "paperId": "university-physics-test-19",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 20 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "60"
+      ]
+    },
+    {
+      "id": "university-physics-test-19-q2",
+      "paperId": "university-physics-test-19",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 21 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "42"
+      ]
+    },
+    {
+      "id": "university-physics-test-19-q3",
+      "paperId": "university-physics-test-19",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 24 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "72"
+      ]
+    },
+    {
+      "id": "university-physics-test-20-q1",
+      "paperId": "university-physics-test-20",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 21 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "63"
+      ]
+    },
+    {
+      "id": "university-physics-test-20-q2",
+      "paperId": "university-physics-test-20",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 22 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "44"
+      ]
+    },
+    {
+      "id": "university-physics-test-20-q3",
+      "paperId": "university-physics-test-20",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 25 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "75"
+      ]
+    },
+    {
+      "id": "university-physics-test-21-q1",
+      "paperId": "university-physics-test-21",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 22 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "66"
+      ]
+    },
+    {
+      "id": "university-physics-test-21-q2",
+      "paperId": "university-physics-test-21",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 23 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "46"
+      ]
+    },
+    {
+      "id": "university-physics-test-21-q3",
+      "paperId": "university-physics-test-21",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 26 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "78"
+      ]
+    },
+    {
+      "id": "university-physics-test-22-q1",
+      "paperId": "university-physics-test-22",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 23 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "69"
+      ]
+    },
+    {
+      "id": "university-physics-test-22-q2",
+      "paperId": "university-physics-test-22",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 24 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "48"
+      ]
+    },
+    {
+      "id": "university-physics-test-22-q3",
+      "paperId": "university-physics-test-22",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 27 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "81"
+      ]
+    },
+    {
+      "id": "university-physics-test-23-q1",
+      "paperId": "university-physics-test-23",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 24 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "72"
+      ]
+    },
+    {
+      "id": "university-physics-test-23-q2",
+      "paperId": "university-physics-test-23",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 25 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "50"
+      ]
+    },
+    {
+      "id": "university-physics-test-23-q3",
+      "paperId": "university-physics-test-23",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 28 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "84"
+      ]
+    },
+    {
+      "id": "university-physics-test-24-q1",
+      "paperId": "university-physics-test-24",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 25 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "75"
+      ]
+    },
+    {
+      "id": "university-physics-test-24-q2",
+      "paperId": "university-physics-test-24",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 26 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "52"
+      ]
+    },
+    {
+      "id": "university-physics-test-24-q3",
+      "paperId": "university-physics-test-24",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 29 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "87"
+      ]
+    },
+    {
+      "id": "university-physics-test-25-q1",
+      "paperId": "university-physics-test-25",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 26 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "78"
+      ]
+    },
+    {
+      "id": "university-physics-test-25-q2",
+      "paperId": "university-physics-test-25",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 27 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "54"
+      ]
+    },
+    {
+      "id": "university-physics-test-25-q3",
+      "paperId": "university-physics-test-25",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 30 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "90"
+      ]
+    },
+    {
+      "id": "university-physics-test-26-q1",
+      "paperId": "university-physics-test-26",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 27 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "81"
+      ]
+    },
+    {
+      "id": "university-physics-test-26-q2",
+      "paperId": "university-physics-test-26",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 28 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "56"
+      ]
+    },
+    {
+      "id": "university-physics-test-26-q3",
+      "paperId": "university-physics-test-26",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 31 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "93"
+      ]
+    },
+    {
+      "id": "university-physics-test-27-q1",
+      "paperId": "university-physics-test-27",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 28 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "84"
+      ]
+    },
+    {
+      "id": "university-physics-test-27-q2",
+      "paperId": "university-physics-test-27",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 29 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "58"
+      ]
+    },
+    {
+      "id": "university-physics-test-27-q3",
+      "paperId": "university-physics-test-27",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 32 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "96"
+      ]
+    },
+    {
+      "id": "university-physics-test-28-q1",
+      "paperId": "university-physics-test-28",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 29 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "87"
+      ]
+    },
+    {
+      "id": "university-physics-test-28-q2",
+      "paperId": "university-physics-test-28",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 30 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "60"
+      ]
+    },
+    {
+      "id": "university-physics-test-28-q3",
+      "paperId": "university-physics-test-28",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 33 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "99"
+      ]
+    },
+    {
+      "id": "university-physics-test-29-q1",
+      "paperId": "university-physics-test-29",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 30 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "90"
+      ]
+    },
+    {
+      "id": "university-physics-test-29-q2",
+      "paperId": "university-physics-test-29",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 31 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "62"
+      ]
+    },
+    {
+      "id": "university-physics-test-29-q3",
+      "paperId": "university-physics-test-29",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 34 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "102"
+      ]
+    },
+    {
+      "id": "university-physics-test-30-q1",
+      "paperId": "university-physics-test-30",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 31 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "93"
+      ]
+    },
+    {
+      "id": "university-physics-test-30-q2",
+      "paperId": "university-physics-test-30",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 32 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "64"
+      ]
+    },
+    {
+      "id": "university-physics-test-30-q3",
+      "paperId": "university-physics-test-30",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 35 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "105"
+      ]
+    },
+    {
+      "id": "university-physics-test-31-q1",
+      "paperId": "university-physics-test-31",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 32 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "96"
+      ]
+    },
+    {
+      "id": "university-physics-test-31-q2",
+      "paperId": "university-physics-test-31",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 33 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "66"
+      ]
+    },
+    {
+      "id": "university-physics-test-31-q3",
+      "paperId": "university-physics-test-31",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 36 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "108"
+      ]
+    },
+    {
+      "id": "university-physics-test-32-q1",
+      "paperId": "university-physics-test-32",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 33 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "99"
+      ]
+    },
+    {
+      "id": "university-physics-test-32-q2",
+      "paperId": "university-physics-test-32",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 34 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "68"
+      ]
+    },
+    {
+      "id": "university-physics-test-32-q3",
+      "paperId": "university-physics-test-32",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 37 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "111"
+      ]
+    },
+    {
+      "id": "university-physics-test-33-q1",
+      "paperId": "university-physics-test-33",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 34 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "102"
+      ]
+    },
+    {
+      "id": "university-physics-test-33-q2",
+      "paperId": "university-physics-test-33",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 35 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "70"
+      ]
+    },
+    {
+      "id": "university-physics-test-33-q3",
+      "paperId": "university-physics-test-33",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 38 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "114"
+      ]
+    },
+    {
+      "id": "university-physics-test-34-q1",
+      "paperId": "university-physics-test-34",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 35 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "105"
+      ]
+    },
+    {
+      "id": "university-physics-test-34-q2",
+      "paperId": "university-physics-test-34",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 36 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "72"
+      ]
+    },
+    {
+      "id": "university-physics-test-34-q3",
+      "paperId": "university-physics-test-34",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 39 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "117"
+      ]
+    },
+    {
+      "id": "university-physics-test-35-q1",
+      "paperId": "university-physics-test-35",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 36 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "108"
+      ]
+    },
+    {
+      "id": "university-physics-test-35-q2",
+      "paperId": "university-physics-test-35",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 37 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "74"
+      ]
+    },
+    {
+      "id": "university-physics-test-35-q3",
+      "paperId": "university-physics-test-35",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 40 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "120"
+      ]
+    },
+    {
+      "id": "university-physics-test-36-q1",
+      "paperId": "university-physics-test-36",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 37 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "111"
+      ]
+    },
+    {
+      "id": "university-physics-test-36-q2",
+      "paperId": "university-physics-test-36",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 38 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "76"
+      ]
+    },
+    {
+      "id": "university-physics-test-36-q3",
+      "paperId": "university-physics-test-36",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 41 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "123"
+      ]
+    },
+    {
+      "id": "university-physics-test-37-q1",
+      "paperId": "university-physics-test-37",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 38 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "114"
+      ]
+    },
+    {
+      "id": "university-physics-test-37-q2",
+      "paperId": "university-physics-test-37",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 39 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "78"
+      ]
+    },
+    {
+      "id": "university-physics-test-37-q3",
+      "paperId": "university-physics-test-37",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 42 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "126"
+      ]
+    },
+    {
+      "id": "university-physics-test-38-q1",
+      "paperId": "university-physics-test-38",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 39 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "117"
+      ]
+    },
+    {
+      "id": "university-physics-test-38-q2",
+      "paperId": "university-physics-test-38",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 40 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "80"
+      ]
+    },
+    {
+      "id": "university-physics-test-38-q3",
+      "paperId": "university-physics-test-38",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 43 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "129"
+      ]
+    },
+    {
+      "id": "university-physics-test-39-q1",
+      "paperId": "university-physics-test-39",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 40 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "120"
+      ]
+    },
+    {
+      "id": "university-physics-test-39-q2",
+      "paperId": "university-physics-test-39",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 41 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "82"
+      ]
+    },
+    {
+      "id": "university-physics-test-39-q3",
+      "paperId": "university-physics-test-39",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 44 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "132"
+      ]
+    },
+    {
+      "id": "university-physics-test-40-q1",
+      "paperId": "university-physics-test-40",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 41 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "123"
+      ]
+    },
+    {
+      "id": "university-physics-test-40-q2",
+      "paperId": "university-physics-test-40",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 42 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "84"
+      ]
+    },
+    {
+      "id": "university-physics-test-40-q3",
+      "paperId": "university-physics-test-40",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 45 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "135"
+      ]
+    },
+    {
+      "id": "university-physics-test-41-q1",
+      "paperId": "university-physics-test-41",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 42 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "126"
+      ]
+    },
+    {
+      "id": "university-physics-test-41-q2",
+      "paperId": "university-physics-test-41",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 43 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "86"
+      ]
+    },
+    {
+      "id": "university-physics-test-41-q3",
+      "paperId": "university-physics-test-41",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 46 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "138"
+      ]
+    },
+    {
+      "id": "university-physics-test-42-q1",
+      "paperId": "university-physics-test-42",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 43 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "129"
+      ]
+    },
+    {
+      "id": "university-physics-test-42-q2",
+      "paperId": "university-physics-test-42",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 44 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "88"
+      ]
+    },
+    {
+      "id": "university-physics-test-42-q3",
+      "paperId": "university-physics-test-42",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 47 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "141"
+      ]
+    },
+    {
+      "id": "university-physics-test-43-q1",
+      "paperId": "university-physics-test-43",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 44 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "132"
+      ]
+    },
+    {
+      "id": "university-physics-test-43-q2",
+      "paperId": "university-physics-test-43",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 45 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "90"
+      ]
+    },
+    {
+      "id": "university-physics-test-43-q3",
+      "paperId": "university-physics-test-43",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 48 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "144"
+      ]
+    },
+    {
+      "id": "university-physics-test-44-q1",
+      "paperId": "university-physics-test-44",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 45 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "135"
+      ]
+    },
+    {
+      "id": "university-physics-test-44-q2",
+      "paperId": "university-physics-test-44",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 46 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "92"
+      ]
+    },
+    {
+      "id": "university-physics-test-44-q3",
+      "paperId": "university-physics-test-44",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 49 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "147"
+      ]
+    },
+    {
+      "id": "university-physics-test-45-q1",
+      "paperId": "university-physics-test-45",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 46 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "138"
+      ]
+    },
+    {
+      "id": "university-physics-test-45-q2",
+      "paperId": "university-physics-test-45",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 47 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "94"
+      ]
+    },
+    {
+      "id": "university-physics-test-45-q3",
+      "paperId": "university-physics-test-45",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 50 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "150"
+      ]
+    },
+    {
+      "id": "university-physics-test-46-q1",
+      "paperId": "university-physics-test-46",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 47 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "141"
+      ]
+    },
+    {
+      "id": "university-physics-test-46-q2",
+      "paperId": "university-physics-test-46",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 48 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "96"
+      ]
+    },
+    {
+      "id": "university-physics-test-46-q3",
+      "paperId": "university-physics-test-46",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 51 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "153"
+      ]
+    },
+    {
+      "id": "university-physics-test-47-q1",
+      "paperId": "university-physics-test-47",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 48 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "144"
+      ]
+    },
+    {
+      "id": "university-physics-test-47-q2",
+      "paperId": "university-physics-test-47",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 49 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "98"
+      ]
+    },
+    {
+      "id": "university-physics-test-47-q3",
+      "paperId": "university-physics-test-47",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 52 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "156"
+      ]
+    },
+    {
+      "id": "university-physics-test-48-q1",
+      "paperId": "university-physics-test-48",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 49 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "147"
+      ]
+    },
+    {
+      "id": "university-physics-test-48-q2",
+      "paperId": "university-physics-test-48",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 50 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "100"
+      ]
+    },
+    {
+      "id": "university-physics-test-48-q3",
+      "paperId": "university-physics-test-48",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 53 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "159"
+      ]
+    },
+    {
+      "id": "university-physics-test-49-q1",
+      "paperId": "university-physics-test-49",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 50 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "150"
+      ]
+    },
+    {
+      "id": "university-physics-test-49-q2",
+      "paperId": "university-physics-test-49",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 51 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "102"
+      ]
+    },
+    {
+      "id": "university-physics-test-49-q3",
+      "paperId": "university-physics-test-49",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 54 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "162"
+      ]
+    },
+    {
+      "id": "university-physics-test-50-q1",
+      "paperId": "university-physics-test-50",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "质量为 51 千克的物体以 3 米每二次方秒加速。求合力（牛）。",
+      "acceptedAnswers": [
+        "153"
+      ]
+    },
+    {
+      "id": "university-physics-test-50-q2",
+      "paperId": "university-physics-test-50",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "物体从静止开始，以 2 米每二次方秒加速 52 秒。求末速度（米每秒）。",
+      "acceptedAnswers": [
+        "104"
+      ]
+    },
+    {
+      "id": "university-physics-test-50-q3",
+      "paperId": "university-physics-test-50",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "恒力 55 牛与位移同向，位移为 3 米。求该力做功（焦）。",
+      "acceptedAnswers": [
+        "165"
+      ]
+    }
+  ]
+}

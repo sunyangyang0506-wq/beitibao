@@ -1,0 +1,454 @@
+{
+  "questions": [
+    {
+      "id": "data-structures-evaluation-01-q1",
+      "paperId": "data-structures-evaluation-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "完全二叉树有 3 个结点，叶子结点有多少个？",
+      "acceptedAnswers": [
+        "2"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-01-q2",
+      "paperId": "data-structures-evaluation-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "含 5 个顶点的无向完全图有多少条边？",
+      "acceptedAnswers": [
+        "10"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-01-q3",
+      "paperId": "data-structures-evaluation-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "长度为 2 的有序数组，二分查找最坏需要多少次关键字比较？",
+      "acceptedAnswers": [
+        "2"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-02-q1",
+      "paperId": "data-structures-evaluation-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "完全二叉树有 5 个结点，叶子结点有多少个？",
+      "acceptedAnswers": [
+        "3"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-02-q2",
+      "paperId": "data-structures-evaluation-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "含 6 个顶点的无向完全图有多少条边？",
+      "acceptedAnswers": [
+        "15"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-02-q3",
+      "paperId": "data-structures-evaluation-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "长度为 4 的有序数组，二分查找最坏需要多少次关键字比较？",
+      "acceptedAnswers": [
+        "3"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-03-q1",
+      "paperId": "data-structures-evaluation-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "完全二叉树有 7 个结点，叶子结点有多少个？",
+      "acceptedAnswers": [
+        "4"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-03-q2",
+      "paperId": "data-structures-evaluation-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "含 7 个顶点的无向完全图有多少条边？",
+      "acceptedAnswers": [
+        "21"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-03-q3",
+      "paperId": "data-structures-evaluation-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "长度为 8 的有序数组，二分查找最坏需要多少次关键字比较？",
+      "acceptedAnswers": [
+        "4"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-04-q1",
+      "paperId": "data-structures-evaluation-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "完全二叉树有 9 个结点，叶子结点有多少个？",
+      "acceptedAnswers": [
+        "5"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-04-q2",
+      "paperId": "data-structures-evaluation-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "含 8 个顶点的无向完全图有多少条边？",
+      "acceptedAnswers": [
+        "28"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-04-q3",
+      "paperId": "data-structures-evaluation-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "长度为 16 的有序数组，二分查找最坏需要多少次关键字比较？",
+      "acceptedAnswers": [
+        "5"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-05-q1",
+      "paperId": "data-structures-evaluation-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "完全二叉树有 11 个结点，叶子结点有多少个？",
+      "acceptedAnswers": [
+        "6"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-05-q2",
+      "paperId": "data-structures-evaluation-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "含 9 个顶点的无向完全图有多少条边？",
+      "acceptedAnswers": [
+        "36"
+      ]
+    },
+    {
+      "id": "data-structures-evaluation-05-q3",
+      "paperId": "data-structures-evaluation-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "长度为 32 的有序数组，二分查找最坏需要多少次关键字比较？",
+      "acceptedAnswers": [
+        "6"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-01-q1",
+      "paperId": "linear-algebra-evaluation-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "对角矩阵的对角元素为 3、5、0。矩阵的秩是多少？",
+      "acceptedAnswers": [
+        "2"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-01-q2",
+      "paperId": "linear-algebra-evaluation-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "求向量 (1, 2, 3) 与 (2, 1, 0) 的内积。",
+      "acceptedAnswers": [
+        "4"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-01-q3",
+      "paperId": "linear-algebra-evaluation-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "二阶矩阵的迹为 10，一个特征值是 2，另一特征值是多少？",
+      "acceptedAnswers": [
+        "8"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-02-q1",
+      "paperId": "linear-algebra-evaluation-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "对角矩阵的对角元素为 4、6、0。矩阵的秩是多少？",
+      "acceptedAnswers": [
+        "2"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-02-q2",
+      "paperId": "linear-algebra-evaluation-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "求向量 (2, 2, 3) 与 (2, 1, 0) 的内积。",
+      "acceptedAnswers": [
+        "6"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-02-q3",
+      "paperId": "linear-algebra-evaluation-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "二阶矩阵的迹为 11，一个特征值是 3，另一特征值是多少？",
+      "acceptedAnswers": [
+        "8"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-03-q1",
+      "paperId": "linear-algebra-evaluation-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "对角矩阵的对角元素为 5、7、0。矩阵的秩是多少？",
+      "acceptedAnswers": [
+        "2"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-03-q2",
+      "paperId": "linear-algebra-evaluation-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "求向量 (3, 2, 3) 与 (2, 1, 0) 的内积。",
+      "acceptedAnswers": [
+        "8"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-03-q3",
+      "paperId": "linear-algebra-evaluation-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "二阶矩阵的迹为 12，一个特征值是 4，另一特征值是多少？",
+      "acceptedAnswers": [
+        "8"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-04-q1",
+      "paperId": "linear-algebra-evaluation-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "对角矩阵的对角元素为 6、8、0。矩阵的秩是多少？",
+      "acceptedAnswers": [
+        "2"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-04-q2",
+      "paperId": "linear-algebra-evaluation-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "求向量 (4, 2, 3) 与 (2, 1, 0) 的内积。",
+      "acceptedAnswers": [
+        "10"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-04-q3",
+      "paperId": "linear-algebra-evaluation-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "二阶矩阵的迹为 13，一个特征值是 5，另一特征值是多少？",
+      "acceptedAnswers": [
+        "8"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-05-q1",
+      "paperId": "linear-algebra-evaluation-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "对角矩阵的对角元素为 7、9、0。矩阵的秩是多少？",
+      "acceptedAnswers": [
+        "2"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-05-q2",
+      "paperId": "linear-algebra-evaluation-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "求向量 (5, 2, 3) 与 (2, 1, 0) 的内积。",
+      "acceptedAnswers": [
+        "12"
+      ]
+    },
+    {
+      "id": "linear-algebra-evaluation-05-q3",
+      "paperId": "linear-algebra-evaluation-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "二阶矩阵的迹为 14，一个特征值是 6，另一特征值是多少？",
+      "acceptedAnswers": [
+        "8"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-01-q1",
+      "paperId": "university-physics-evaluation-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "电阻为 4 欧，通过的电流为 2 安。求电阻两端电压（伏）。",
+      "acceptedAnswers": [
+        "8"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-01-q2",
+      "paperId": "university-physics-evaluation-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "一台设备的功率为 20 瓦，持续工作 5 秒。求能量（焦）。",
+      "acceptedAnswers": [
+        "100"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-01-q3",
+      "paperId": "university-physics-evaluation-01",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "波的频率为 3 赫，波长为 4 米。求传播速度（米每秒）。",
+      "acceptedAnswers": [
+        "12"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-02-q1",
+      "paperId": "university-physics-evaluation-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "电阻为 5 欧，通过的电流为 2 安。求电阻两端电压（伏）。",
+      "acceptedAnswers": [
+        "10"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-02-q2",
+      "paperId": "university-physics-evaluation-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "一台设备的功率为 40 瓦，持续工作 5 秒。求能量（焦）。",
+      "acceptedAnswers": [
+        "200"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-02-q3",
+      "paperId": "university-physics-evaluation-02",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "波的频率为 4 赫，波长为 4 米。求传播速度（米每秒）。",
+      "acceptedAnswers": [
+        "16"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-03-q1",
+      "paperId": "university-physics-evaluation-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "电阻为 6 欧，通过的电流为 2 安。求电阻两端电压（伏）。",
+      "acceptedAnswers": [
+        "12"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-03-q2",
+      "paperId": "university-physics-evaluation-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "一台设备的功率为 60 瓦，持续工作 5 秒。求能量（焦）。",
+      "acceptedAnswers": [
+        "300"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-03-q3",
+      "paperId": "university-physics-evaluation-03",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "波的频率为 5 赫，波长为 4 米。求传播速度（米每秒）。",
+      "acceptedAnswers": [
+        "20"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-04-q1",
+      "paperId": "university-physics-evaluation-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "电阻为 7 欧，通过的电流为 2 安。求电阻两端电压（伏）。",
+      "acceptedAnswers": [
+        "14"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-04-q2",
+      "paperId": "university-physics-evaluation-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "一台设备的功率为 80 瓦，持续工作 5 秒。求能量（焦）。",
+      "acceptedAnswers": [
+        "400"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-04-q3",
+      "paperId": "university-physics-evaluation-04",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "波的频率为 6 赫，波长为 4 米。求传播速度（米每秒）。",
+      "acceptedAnswers": [
+        "24"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-05-q1",
+      "paperId": "university-physics-evaluation-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "电阻为 8 欧，通过的电流为 2 安。求电阻两端电压（伏）。",
+      "acceptedAnswers": [
+        "16"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-05-q2",
+      "paperId": "university-physics-evaluation-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "一台设备的功率为 100 瓦，持续工作 5 秒。求能量（焦）。",
+      "acceptedAnswers": [
+        "500"
+      ]
+    },
+    {
+      "id": "university-physics-evaluation-05-q3",
+      "paperId": "university-physics-evaluation-05",
+      "page": 1,
+      "kind": "numeric",
+      "prompt": "波的频率为 7 赫，波长为 4 米。求传播速度（米每秒）。",
+      "acceptedAnswers": [
+        "28"
+      ]
+    }
+  ]
+}

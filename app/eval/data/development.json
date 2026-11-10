@@ -1,0 +1,12 @@
+{
+  "datasetVersion": "synthetic-v1",
+  "split": "development",
+  "papers": [
+    {"id":"dev-cs","sourceGroup":"synthetic-dev-cs","subject":"数据结构","layout":"digital","file":"dev-cs.pdf","expected":"review","pageCount":1,"textPages":[{"page":1,"contains":["Which structure follows FIFO?","A. Stack","B. Queue"]}]},
+    {"id":"dev-math","sourceGroup":"synthetic-dev-math","subject":"线性代数","layout":"digital","file":"dev-math.pdf","expected":"review","pageCount":1,"textPages":[{"page":1,"contains":["Solve 2x + 3 = 11."]}]}
+  ],
+  "questions": [
+    {"id":"dev-cs-q1","paperId":"dev-cs","page":1,"kind":"choice","prompt":"Which structure follows FIFO? A. Stack B. Queue","acceptedAnswers":["B","Queue"]},
+    {"id":"dev-math-q1","paperId":"dev-math","page":1,"kind":"numeric","prompt":"Solve 2x + 3 = 11. Give x only.","acceptedAnswers":["4"]}
+  ]
+}

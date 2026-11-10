@@ -1,0 +1,156 @@
+{
+  "datasetVersion": "subject-synthetic-v1",
+  "split": "evaluation",
+  "papers": [
+    {
+      "id": "data-structures-evaluation-01",
+      "subjectId": "data-structures",
+      "title": "数据结构  评测卷 01",
+      "origin": "synthetic",
+      "sourceGroup": "data-structures-evaluation-01",
+      "file": "data-structures-evaluation-01.pdf",
+      "pageCount": 1,
+      "sha256": "b99f2b2efc51161cd4045bd7056115e0ea3047bafcb4ec4b720134d91276eab9"
+    },
+    {
+      "id": "data-structures-evaluation-02",
+      "subjectId": "data-structures",
+      "title": "数据结构  评测卷 02",
+      "origin": "synthetic",
+      "sourceGroup": "data-structures-evaluation-02",
+      "file": "data-structures-evaluation-02.pdf",
+      "pageCount": 1,
+      "sha256": "129bf025d72980166f72269c5d8d436689abe767f9792315378f371fea9a206c"
+    },
+    {
+      "id": "data-structures-evaluation-03",
+      "subjectId": "data-structures",
+      "title": "数据结构  评测卷 03",
+      "origin": "synthetic",
+      "sourceGroup": "data-structures-evaluation-03",
+      "file": "data-structures-evaluation-03.pdf",
+      "pageCount": 1,
+      "sha256": "63c354ee3cd496b4af4fa2bb65fc9558de5cb5475e1c2a85815c2ff01ecca50c"
+    },
+    {
+      "id": "data-structures-evaluation-04",
+      "subjectId": "data-structures",
+      "title": "数据结构  评测卷 04",
+      "origin": "synthetic",
+      "sourceGroup": "data-structures-evaluation-04",
+      "file": "data-structures-evaluation-04.pdf",
+      "pageCount": 1,
+      "sha256": "307e237ddab90039c9ccfe678bfc118b523001a01099d07c5a213d8418bfdf24"
+    },
+    {
+      "id": "data-structures-evaluation-05",
+      "subjectId": "data-structures",
+      "title": "数据结构  评测卷 05",
+      "origin": "synthetic",
+      "sourceGroup": "data-structures-evaluation-05",
+      "file": "data-structures-evaluation-05.pdf",
+      "pageCount": 1,
+      "sha256": "7de96d6a8cb234b74a36479f4e886d20ae074ad785af200064afc3effc4de933"
+    },
+    {
+      "id": "linear-algebra-evaluation-01",
+      "subjectId": "linear-algebra",
+      "title": "线性代数  评测卷 01",
+      "origin": "synthetic",
+      "sourceGroup": "linear-algebra-evaluation-01",
+      "file": "linear-algebra-evaluation-01.pdf",
+      "pageCount": 1,
+      "sha256": "c517e6c8f9c6cf500a93ed829d54ef9c96e5c3d8fc70b464c80fb655a30a8a1f"
+    },
+    {
+      "id": "linear-algebra-evaluation-02",
+      "subjectId": "linear-algebra",
+      "title": "线性代数  评测卷 02",
+      "origin": "synthetic",
+      "sourceGroup": "linear-algebra-evaluation-02",
+      "file": "linear-algebra-evaluation-02.pdf",
+      "pageCount": 1,
+      "sha256": "c83e54001c6226565be0e9b2ad7daf45a3396e16a96cb26e6f7baed12705cbf3"
+    },
+    {
+      "id": "linear-algebra-evaluation-03",
+      "subjectId": "linear-algebra",
+      "title": "线性代数  评测卷 03",
+      "origin": "synthetic",
+      "sourceGroup": "linear-algebra-evaluation-03",
+      "file": "linear-algebra-evaluation-03.pdf",
+      "pageCount": 1,
+      "sha256": "07e915bb837ab6bf4fbc44214a50cf08c39799edcf4591eb41eaad7954448fbe"
+    },
+    {
+      "id": "linear-algebra-evaluation-04",
+      "subjectId": "linear-algebra",
+      "title": "线性代数  评测卷 04",
+      "origin": "synthetic",
+      "sourceGroup": "linear-algebra-evaluation-04",
+      "file": "linear-algebra-evaluation-04.pdf",
+      "pageCount": 1,
+      "sha256": "f6b73951d86c6450d2a6b0fb899fdf60c656dcc89cb057d16492adbcbe3d8f1c"
+    },
+    {
+      "id": "linear-algebra-evaluation-05",
+      "subjectId": "linear-algebra",
+      "title": "线性代数  评测卷 05",
+      "origin": "synthetic",
+      "sourceGroup": "linear-algebra-evaluation-05",
+      "file": "linear-algebra-evaluation-05.pdf",
+      "pageCount": 1,
+      "sha256": "5e0efe5d43e73ebba959e653105441df7cc188e23d51ddc209022a54bb0ebea6"
+    },
+    {
+      "id": "university-physics-evaluation-01",
+      "subjectId": "university-physics",
+      "title": "大学物理  评测卷 01",
+      "origin": "synthetic",
+      "sourceGroup": "university-physics-evaluation-01",
+      "file": "university-physics-evaluation-01.pdf",
+      "pageCount": 1,
+      "sha256": "7749fa42a396fe39919d6a86ce6e657d0997c52bb5bafa629cb0c9373c6c5e41"
+    },
+    {
+      "id": "university-physics-evaluation-02",
+      "subjectId": "university-physics",
+      "title": "大学物理  评测卷 02",
+      "origin": "synthetic",
+      "sourceGroup": "university-physics-evaluation-02",
+      "file": "university-physics-evaluation-02.pdf",
+      "pageCount": 1,
+      "sha256": "0133e5af7191d26f1bd3655a74a10f480ac302b10060315e9cdea108a8128d05"
+    },
+    {
+      "id": "university-physics-evaluation-03",
+      "subjectId": "university-physics",
+      "title": "大学物理  评测卷 03",
+      "origin": "synthetic",
+      "sourceGroup": "university-physics-evaluation-03",
+      "file": "university-physics-evaluation-03.pdf",
+      "pageCount": 1,
+      "sha256": "f7295ef9f9e9987c91af891292fadc3c8f4a97f7726e5d94e91e2dad5c0b9797"
+    },
+    {
+      "id": "university-physics-evaluation-04",
+      "subjectId": "university-physics",
+      "title": "大学物理  评测卷 04",
+      "origin": "synthetic",
+      "sourceGroup": "university-physics-evaluation-04",
+      "file": "university-physics-evaluation-04.pdf",
+      "pageCount": 1,
+      "sha256": "da91695a5afe8e736e31e4e082e679f0b63efa88c9110611f68508d1ca282404"
+    },
+    {
+      "id": "university-physics-evaluation-05",
+      "subjectId": "university-physics",
+      "title": "大学物理  评测卷 05",
+      "origin": "synthetic",
+      "sourceGroup": "university-physics-evaluation-05",
+      "file": "university-physics-evaluation-05.pdf",
+      "pageCount": 1,
+      "sha256": "7bac0690687c7072e343a1f51614982b121d3987a7737530b7b2326181999042"
+    }
+  ]
+}
