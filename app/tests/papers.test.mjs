@@ -261,7 +261,7 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     const confirmed = await request(owner, 'POST', path + '/questions', question);
     assert.equal(confirmed.statusCode, 201);
     assert.equal((await request(owner, 'POST', path + '/questions', question)).json().reused, true);
-    assert.deepEqual((await request(owner, 'GET', path)).json().questions, [{ ...question, id: confirmed.json().id, kind: 'other' }]);
+    assert.deepEqual((await request(owner, 'GET', path)).json().questions, [{ ...question, id: confirmed.json().id, inputRevision: 1, kind: 'other' }]);
     assert.equal((await request(owner, 'GET', '/progress')).json().courses[0].totalPapers, 1);
 
     assert.equal(await processNextSolution(worker, async () => { throw new Error('unexpected model call'); }), false);
