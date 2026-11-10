@@ -1,3 +1,4 @@
+import { resolveRecognizedCourse, type Assignment } from './subject-assignment.js';
 import { randomUUID } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import type { FastifyInstance } from 'fastify';
@@ -24,13 +25,31 @@ export function registerPdfPageRecognition(app: FastifyInstance, pool: Pool, pre
   const route = prefix + '/papers/:paperId/pages/:page';
   app.post<{ Params: { paperId: string; page: number } }>(route + '/recognition',
     { schema: { params: pageParams, security } }, async (request, reply) => {
-      if (!modelsEnabled) return reply.code(409).send({ code: 'RECOGNITION_UNAVAILABLE' });
       const tenant = request.studySession!.id;
       const { paperId, page } = request.params;
       const key = [tenant, paperId, page];
+      let published = false;
       const status = await asTenant(pool, tenant, async db => {
-        await db.query('SELECT 1 FROM papers WHERE tenant_id = $1 AND id = $2 FOR UPDATE', key.slice(0, 2));
+        const { rows: [course] } = await db.query<{ course_id: string | null }>(
+          'SELECT course_id FROM papers WHERE tenant_id = $1 AND id = $2', key.slice(0, 2));
+        if (course?.course_id) await lockCourseMaterial(db, tenant, course.course_id);
+        const { rows: [paper] } = await db.query<{ model_allowed: boolean }>(
+          'SELECT model_allowed FROM papers WHERE tenant_id = $1 AND id = $2 FOR UPDATE', key.slice(0, 2));
+        if (!paper) return undefined;
+        if (!paper.model_allowed) return 'unavailable';
         if (await closedBookActive(db, tenant, paperId)) return 'locked';
+        const { rows: [job] } = await db.query<{ status: string; reviewed_at: Date | null }>(
+          'SELECT status, reviewed_at FROM paper_page_recognition WHERE tenant_id = $1 AND paper_id = $2 AND page_number = $3', key);
+        if (job?.status === 'review') {
+          // Recover older saved recognition without rerunning OCR or discarding feedback.
+          // Cross-account cache reuse remains a worker-only operation.
+          if (!job.reviewed_at) await publishCompletedPages(db, tenant, paperId, false, modelsEnabled);
+          const { rows: [saved] } = await db.query<{ status: string; published: boolean }>(
+            'SELECT status, reviewed_at IS NOT NULL AS published FROM paper_page_recognition WHERE tenant_id = $1 AND paper_id = $2 AND page_number = $3', key);
+          published = saved?.published ?? false;
+          return saved?.status;
+        }
+        if (!modelsEnabled) return 'unavailable';
         await db.query(`
           INSERT INTO paper_page_recognition (tenant_id, paper_id, page_number)
           SELECT tenant_id, id, $3 FROM papers
@@ -40,12 +59,13 @@ export function registerPdfPageRecognition(app: FastifyInstance, pool: Pool, pre
           SET status = 'queued', failure = NULL
           WHERE paper_page_recognition.status = 'failed' AND paper_page_recognition.reviewed_at IS NULL
         `, key);
-        const { rows: [job] } = await db.query(
+        const { rows: [queued] } = await db.query(
           'SELECT status FROM paper_page_recognition WHERE tenant_id = $1 AND paper_id = $2 AND page_number = $3', key);
-        return job?.status;
+        return queued?.status;
       });
+      if (status === 'unavailable') return reply.code(409).send({ code: 'RECOGNITION_UNAVAILABLE' });
       if (status === 'locked') return reply.code(409).send({ code: 'CLOSED_BOOK_ACTIVE' });
-      return status ? reply.code(status === 'queued' || status === 'processing' ? 202 : 200).send({ status })
+      return status ? reply.code(status === 'queued' || status === 'processing' ? 202 : 200).send({ status, published })
         : reply.code(404).send({ code: 'PAPER_NOT_FOUND' });
     });
 
@@ -91,7 +111,7 @@ export function registerPdfPageRecognition(app: FastifyInstance, pool: Pool, pre
     });
 }
 
-async function publishCompletedPages(db: PoolClient, tenant: string, paperId: string) {
+async function publishCompletedPages(db: PoolClient, tenant: string, paperId: string, reuseSolutions = true, queueSolutions = true) {
   const key = [tenant, paperId];
   const { rows } = await db.query<{
     page_number: number; reviewed_at: Date | null; status: string; failure: string | null;
@@ -105,7 +125,14 @@ async function publishCompletedPages(db: PoolClient, tenant: string, paperId: st
   const choiceOnly = rows.some(row => row.recognition?.choiceOnly);
   for (const [index, row] of rows.entries()) {
     const result = row.recognition;
-    if (row.reviewed_at || !result || (row.status !== 'review' && row.failure !== 'OCR_INCOMPLETE_OPTIONS')) continue;
+    if (row.reviewed_at) continue;
+    if (row.status === 'review' && (!result || !Array.isArray(result.stems) ||
+        result.stems.some(stem => typeof stem !== 'string' || !stem.trim() || [...stem].length > 8000))) {
+      await db.query(`UPDATE paper_page_recognition SET status = 'failed', failure = 'OCR_FAILED'
+        WHERE tenant_id = $1 AND paper_id = $2 AND page_number = $3`, [...key, row.page_number]);
+      continue;
+    }
+    if (!result || (row.status !== 'review' && row.failure !== 'OCR_INCOMPLETE_OPTIONS')) continue;
     const next = rows[index + 1];
     const continued = next?.recognition?.continuation;
     const stems = [...result.stems];
@@ -129,8 +156,8 @@ async function publishCompletedPages(db: PoolClient, tenant: string, paperId: st
       WHERE tenant_id = $1 AND paper_id = $2 AND page_number = $3 AND stem = $4 AND cardinality(source_pages) = 0`,
     [...key, row.page_number, checked.at(-1), next.page_number]);
   }
-  await reuseStandaloneSolutions(db, tenant, paperId);
-  await db.query(`UPDATE paper_questions SET solution_status = 'queued'
+  if (reuseSolutions) await reuseStandaloneSolutions(db, tenant, paperId);
+  if (queueSolutions) await db.query(`UPDATE paper_questions SET solution_status = 'queued'
     WHERE tenant_id = $1 AND paper_id = $2 AND solution_status IS NULL`, key);
   return true;
 }
@@ -172,25 +199,22 @@ export async function processNextPageRecognition(pool: Pool, recognize = recogni
     const key = [job.tenant_id, job.paper_id];
     const subject = job.auto_assignment && job.page_number === 1 ? recognition?.paperSubject : undefined;
     let courseId = job.course_id;
-    if (subject && !courseId) {
-      await db.query("SELECT set_config('beitibao.tenant_id', $1, true)", [job.tenant_id]);
-      const { rows } = await db.query<{ id: string; name: string }>(
-        'SELECT id, name FROM courses WHERE tenant_id = $1', [job.tenant_id]);
-      const candidates = rows.filter(course => subjectKey(course.name) === subjectKey(subject));
-      if (candidates.length === 1) courseId = candidates[0]!.id;
-    }
+    const assignment: Assignment = job.auto_assignment && job.page_number === 1 && !courseId
+      ? await resolveRecognizedCourse(db, job.tenant_id, recognition ?? {})
+      : { courseId, reason: 'assigned' };
+    courseId = assignment.courseId;
     if (courseId && (subject || (autoPublish && autoPredict))) await lockCourseMaterial(db, job.tenant_id, courseId);
     const { rows: [paper] } = await db.query<{ count: number; review_revision: number }>(`
       SELECT jsonb_array_length(pages) AS count, review_revision
       FROM papers WHERE tenant_id = $1 AND id = $2 FOR UPDATE
     `, key);
-    if (!paper) return;
+    if (!paper) throw new Error('STALE_RECOGNITION_LEASE');
     const saved = await db.query(`
       UPDATE paper_page_recognition SET status = $5, failure = $6, recognition = $7::jsonb || jsonb_build_object('recognizedAt', clock_timestamp()), original_recognition = $7::jsonb, lease_id = NULL, lease_until = NULL
       WHERE tenant_id = $1 AND paper_id = $2 AND page_number = $3 AND lease_id = $4
     `, [...key, job.page_number, lease, recognition ? 'review' : 'failed',
       failure, recognition ? JSON.stringify(recognition) : null]);
-    if (!saved.rowCount) return;
+    if (!saved.rowCount) throw new Error('STALE_RECOGNITION_LEASE');
     if (job.page_number === 1 && recognition?.paperSubject) {
       await setTenant(db, job.tenant_id);
       const keySubject = subjectKey(recognition.paperSubject);
@@ -199,7 +223,7 @@ export async function processNextPageRecognition(pool: Pool, recognize = recogni
         WHERE tenant_id=$1 AND paper_id=$2
       `, [...key, keySubject]);
     }
-    if (subject) {
+    if (job.auto_assignment && job.page_number === 1) {
       const { rows: [assigned] } = await db.query<{ course_id: string | null }>(`
         UPDATE papers p SET recognized_subject = $3, course_id = CASE
           WHEN p.course_id IS NOT NULL OR $4::uuid IS NULL OR EXISTS (
@@ -207,9 +231,11 @@ export async function processNextPageRecognition(pool: Pool, recognize = recogni
               AND existing.fingerprint = p.fingerprint AND existing.school IS NOT DISTINCT FROM p.school AND existing.id <> p.id
           ) THEN p.course_id ELSE $4 END
         WHERE p.tenant_id = $1 AND p.id = $2 RETURNING course_id
-      `, [...key, subject, courseId]);
+      `, [...key, subject ?? null, courseId]);
       courseId = assigned?.course_id ?? null;
-      if (job.school_candidate_id && courseId) {
+      await db.query('UPDATE papers SET assignment_reason = $3 WHERE tenant_id = $1 AND id = $2',
+        [...key, courseId ? 'assigned' : assignment.courseId ? 'duplicate' : assignment.reason]);
+      if (job.school_candidate_id && courseId && subject) {
         await reuseMatchingPages(db, { ...job, id: job.paper_id }, job.school_candidate_id, subject);
       }
     }
@@ -242,6 +268,6 @@ export async function processNextPageRecognition(pool: Pool, recognize = recogni
       const published = await publishCompletedPages(db, job.tenant_id, job.paper_id);
       if (published && autoPredict && courseId) await queueCoursePrediction(db, job.tenant_id, courseId);
     }
-  });
+  }).catch(error => { if (!(error instanceof Error) || error.message !== 'STALE_RECOGNITION_LEASE') throw error; });
   return true;
 }

@@ -22,7 +22,7 @@ export async function processNextPaper(pool: Pool, recognize = recognizeImage, s
   privateWorker?: { storage?: PaperStorage; modelsEnabled: boolean; predictionsEnabled?: boolean }, target?: JobTarget, recognizeAllPdfPages = false) {
   const leaseId = randomUUID();
   const { rows: [paper] } = await pool.query<PaperOriginal & {
-    tenant_id: string; id: string; model_cache_key: string | null; recognize_scans: boolean; model_allowed: boolean; course_id: string | null; fingerprint: string; school_page_hashes: string[] | null;
+    tenant_id: string; id: string; model_cache_key: string | null; recognize_scans: boolean; model_allowed: boolean; auto_assignment: boolean; course_id: string | null; fingerprint: string; school_page_hashes: string[] | null;
   }>(`
     WITH next AS (
       SELECT tenant_id, id FROM papers
@@ -33,7 +33,7 @@ export async function processNextPaper(pool: Pool, recognize = recognizeImage, s
     UPDATE papers AS p SET status = 'processing', lease_id = $1, lease_until = now() + interval '180 seconds'
     FROM next WHERE (p.tenant_id, p.id) = (next.tenant_id, next.id)
     RETURNING p.tenant_id, p.id, p.pdf, p.media_type, p.object_key, p.object_version, p.object_bytes,
-      p.model_cache_key, p.recognize_scans, p.model_allowed, p.course_id, p.fingerprint, p.school_page_hashes
+      p.model_cache_key, p.recognize_scans, p.model_allowed, p.auto_assignment, p.course_id, p.fingerprint, p.school_page_hashes
   `, [leaseId, target?.tenant ?? null, target?.id ?? null]);
   if (!paper) return false;
 

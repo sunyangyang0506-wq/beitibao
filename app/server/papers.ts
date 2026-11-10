@@ -1,3 +1,4 @@
+import { resolveRecognizedCourse, type SubjectEvidence } from './subject-assignment.js';
 import { closedBookActive } from './practice.js';
 import { registerRecallRoutes } from './recall.js';
 import { normalizeAnswer, type QuestionReference } from './question-reference.js';
@@ -6,7 +7,7 @@ import type { Pool } from 'pg';
 import { createHash } from 'node:crypto';
 import { imagePromptVersion, isImageType, validImage } from './image-recognition.js';
 import { registerPdfPageRecognition } from './pdf-page-recognition.js';
-import { registerRecognitionReview } from './recognition-review.js';
+import { registerRecognitionReview, savedImageCandidates } from './recognition-review.js';
 import { asTenant, lockCourseMaterial } from './db.js';
 import { paperSolutionVersion } from './paper-model-cache.js';
 import { maxPdfBytes, renderPage } from './paper-parser.js';
@@ -165,6 +166,46 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
       return { courseId };
     });
 
+  app.post<{ Params: { paperId: string } }>(prefix + '/papers/:paperId/retry-assignment',
+    { schema: { security, params: paperParams } }, async (request, reply) => {
+      const tenant = request.studySession!.id;
+      const paperId = request.params.paperId;
+      const result = await asTenant(pool, tenant, async db => {
+        // Read evidence first; serialize course creation before taking course/paper locks.
+        const { rows: [candidate] } = await db.query<{ recognition: SubjectEvidence | null }>(`
+          SELECT r.original_recognition AS recognition FROM papers p
+          LEFT JOIN paper_page_recognition r ON (r.tenant_id,r.paper_id,r.page_number)=(p.tenant_id,p.id,1)
+          WHERE p.tenant_id=$1 AND p.id=$2 AND p.auto_assignment AND p.course_id IS NULL
+        `, [tenant, paperId]);
+        if (!candidate) return { code: 'PAPER_NOT_FOUND' };
+        await db.query('SAVEPOINT assignment_retry');
+        const assignment = await resolveRecognizedCourse(db, tenant, candidate.recognition ?? {});
+        if (assignment.courseId) await lockCourseMaterial(db, tenant, assignment.courseId);
+        const { rows: [paper] } = await db.query<{ course_id: string | null; busy: boolean; duplicate: boolean; recognition: SubjectEvidence | null }>(`
+          SELECT p.course_id, (SELECT r.original_recognition FROM paper_page_recognition r
+            WHERE (r.tenant_id,r.paper_id,r.page_number)=(p.tenant_id,p.id,1)) AS recognition, (p.status IN ('queued','processing') OR EXISTS (
+            SELECT 1 FROM paper_page_recognition r WHERE (r.tenant_id,r.paper_id)=(p.tenant_id,p.id)
+            AND r.status IN ('queued','processing'))) AS busy,
+            EXISTS (SELECT 1 FROM papers other WHERE other.tenant_id=p.tenant_id AND other.id<>p.id
+              AND other.course_id=$3 AND other.fingerprint=p.fingerprint AND other.school IS NOT DISTINCT FROM p.school) AS duplicate
+          FROM papers p WHERE p.tenant_id=$1 AND p.id=$2 FOR UPDATE
+        `, [tenant, paperId, assignment.courseId]);
+        if (!paper || paper.course_id || paper.busy || JSON.stringify(paper.recognition) !== JSON.stringify(candidate.recognition) ||
+            await closedBookActive(db, tenant, paperId)) {
+          await db.query('ROLLBACK TO SAVEPOINT assignment_retry');
+          return { code: 'PAPER_ASSIGNMENT_BUSY' };
+        }
+        const courseId = paper.duplicate ? null : assignment.courseId;
+        const assignmentReason = paper.duplicate ? 'duplicate' : assignment.reason;
+        await db.query('UPDATE papers SET course_id=$3, assignment_reason=$4 WHERE tenant_id=$1 AND id=$2',
+          [tenant, paperId, courseId, assignmentReason]);
+        if (courseId && (privatePapers?.predictionsEnabled ?? localModelPreview)) await queueCoursePrediction(db, tenant, courseId);
+        return { courseId, assignmentReason };
+      });
+      if ('code' in result) return reply.code(result.code === 'PAPER_NOT_FOUND' ? 404 : 409).send(result);
+      return result;
+    });
+
   app.post<{ Params: { paperId: string } }>(prefix + '/papers/:paperId/revoke-school-sharing',
     { schema: { security, params: paperParams } }, async (request, reply) => {
       const tenant = request.studySession!.id;
@@ -181,13 +222,14 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
       const key = [request.studySession!.id, request.params.paperId];
       const result = await asTenant(pool, key[0]!, async (db) => {
         const { rows: [paper] } = await db.query(`
-          SELECT ${fields}, pages, recognition, (model_allowed AND $3) AS "modelAvailable",
+          SELECT ${fields}, pages, recognition, model_allowed, is_prediction, (model_allowed AND $3) AS "modelAvailable",
             (model_allowed AND $4 AND media_type = 'application/pdf') AS "autoReview"
           FROM papers WHERE tenant_id = $1 AND id = $2
         `, [...key, privatePapers?.modelsEnabled ?? true, privatePapers?.modelsEnabled ?? localModelPreview]);
         if (!paper) return null;
+        const { model_allowed, is_prediction, ...visiblePaper } = paper;
         if (await closedBookActive(db, key[0]!, key[1]!)) {
-          return { paper: { ...paper, pages: [], recognition: null }, questions: [], reviews: [], pageReviews: [], closedBook: true,
+          return { paper: { ...visiblePaper, pages: [], recognition: null }, questions: [], reviews: [], pageReviews: [], closedBook: true,
             ...(privatePapers && { canDelete: true }) };
         }
         const { rows: questions } = await db.query(`
@@ -207,7 +249,11 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
           SELECT page_number AS page, status, failure, recognition, reviewed_at AS "reviewedAt"
           FROM paper_page_recognition WHERE tenant_id = $1 AND paper_id = $2 ORDER BY page_number
         `, key);
-        return { paper, questions: questions.map(({ sourcePages, reference, modelSolution, solutionStatus, solutionFailure, stemCorrection, ...question }) => ({
+        const recovery = await savedImageCandidates(db, key[0]!, key[1]!, {
+          status: paper.status, media_type: paper.mediaType, model_allowed, is_prediction, recognition: paper.recognition
+        });
+        return { paper: visiblePaper, ...(recovery && { savedImageRecovery: { publishable: recovery.candidates.length, pending: recovery.pending } }),
+          questions: questions.map(({ sourcePages, reference, modelSolution, solutionStatus, solutionFailure, stemCorrection, ...question }) => ({
           ...question, ...(sourcePages && { sourcePages }), ...(stemCorrection && { stemCorrection }), ...(request.query.includeAnalysis && { reference, modelSolution, solutionStatus, solutionFailure })
         })), reviews, pageReviews, ...(privatePapers && { canDelete: true }) };
       });

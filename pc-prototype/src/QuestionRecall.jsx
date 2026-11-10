@@ -1,3 +1,4 @@
+import { PaperText } from './PaperText.jsx';
 import { KnowledgePoints } from './Knowledge.jsx';
 import React, { useEffect, useState } from 'react';
 
@@ -122,7 +123,7 @@ export function RecallQuestion({ question, path, api, csrf, onExpired, onAssesse
 
   return <section className="pc-recognition-item">
     <small>{question.paperTitle} · 第 {question.pageNumber} 页</small>
-    <p className="pc-confirmed-stem">{stemCorrection ?? question.stem}</p>
+    <PaperText text={stemCorrection ?? question.stem} />
     <StemCorrection question={{ ...question, stemCorrection, inputRevision }} path={path} api={api} csrf={csrf}
       onExpired={onExpired} onSaved={(stem, changed, version) => { setInputRevision(version); setStemCorrection(stem); if (changed) { setResult(null); onAssessed?.(); } }} />
     <button disabled={busy} onClick={() => reveal(result?.solutionStatus === 'failed')}>
@@ -132,11 +133,11 @@ export function RecallQuestion({ question, path, api, csrf, onExpired, onAssesse
     {result && <>
       {stemCorrection && <p>当前为个人修订版本，答案按此版本重新生成。</p>}
       {result.modelSolution && <KnowledgePoints points={result.modelSolution.knowledgePoints} />}
-      {result.reference && <p>已核验答案：{result.reference.answers.join('、')} {result.reference.explanation}</p>}
+      {result.reference && <div><strong>已核验答案</strong><PaperText text={result.reference.answers.join('、')} /><PaperText text={result.reference.explanation ?? ''} /></div>}
       {result.modelSolution ? <div className="pc-confirmed-stem">
         <strong>{result.modelSolution.status === 'solved' ? '模型参考答案与解析' : '模型无法确定答案'}</strong>
-        {result.modelSolution.answer && <p>{result.modelSolution.answer}</p>}
-        <p>{result.modelSolution.explanation}</p>
+        {result.modelSolution.answer && <PaperText text={result.modelSolution.answer} />}
+        <PaperText text={result.modelSolution.explanation ?? ''} />
       </div> : <p>{result.solutionStatus === 'failed' ? '生成失败。' : '正在生成知识点、参考答案和解析…'}</p>}
       <div className="pc-dialog-actions">
         {Object.entries({ mastered: '能独立说出', partial: '漏了部分', needs_practice: '还想不起来' }).map(([rating, label]) =>
@@ -144,9 +145,16 @@ export function RecallQuestion({ question, path, api, csrf, onExpired, onAssesse
       </div>
       <button disabled={busy} onClick={bookmark}>{result.bookmarked ? '取消手动收录' : '加入错题本'}</button>
       {savedToMistakes && <p role="status">已收录到错题本。 {onMistakes && <button onClick={onMistakes}>查看错题本</button>}</p>}
-      <AnswerCorrection question={result} path={path} api={api} csrf={csrf} onExpired={onExpired} />
+      <AnswerCorrection question={{ ...question, ...result }} path={path} api={api} csrf={csrf} onExpired={onExpired} />
     </>}
   </section>;
+}
+
+export function isChoiceQuestion(question) {
+  if (question.kind) return question.kind === 'choice';
+  if (question.reference?.kind === 'choice') return true;
+  const stem = question.stemCorrection ?? question.stem ?? '';
+  return /(?:^|\s)[AＡ][.．、)）:]\s*/u.test(stem) && /(?:^|\s)[BＢ][.．、)）:]\s*/u.test(stem);
 }
 
 export function AnswerCorrection({ question, path, api, csrf, onExpired }) {
@@ -170,6 +178,7 @@ export function AnswerCorrection({ question, path, api, csrf, onExpired }) {
     }
   }
 
+  if (isChoiceQuestion(question)) return null;
   return <details>
     <summary>个人答案与笔记</summary>
     <form className="pc-fields" onSubmit={save} key={JSON.stringify(correction)}>

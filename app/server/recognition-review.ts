@@ -5,7 +5,8 @@ import { compareFigure, cropOriginal, figureBox, isNumericSearchTree, type Paper
 import { isImageType, rereadFigure, type recognizeImage } from './image-recognition.js';
 import { modelRequest } from './model-gateway.js';
 import { closedBookActive } from './practice.js';
-import { asTenant } from './db.js';
+import { asTenant, lockCourseMaterial } from './db.js';
+import { choiceOptionCount, completeChoiceStem } from './paper-choices.js';
 import { renderPage } from './paper-parser.js';
 import { candidatesPerPage, pdfRecognitionSize } from './pdf-page-recognition.js';
 import { loadPaperOriginal, type PaperOriginal, type PaperStorage } from './paper-storage.js';
@@ -64,6 +65,44 @@ async function hasReview(db: PoolClient, tenant: string, paperId: string, candid
   const result = await db.query('SELECT 1 FROM recognition_feedback WHERE tenant_id = $1 AND paper_id = $2 AND candidate_index = $3',
     [tenant, paperId, candidate]);
   return Boolean(result.rowCount);
+}
+
+type SavedImagePaper = { status: string; media_type: string; model_allowed: boolean; is_prediction?: boolean;
+  recognition: Awaited<ReturnType<typeof recognizeImage>> | null };
+
+export async function savedImageCandidates(db: PoolClient, tenant: string, paperId: string, paper: SavedImagePaper) {
+  const recognition = paper.recognition;
+  if (!isImageType(paper.media_type) || paper.status !== 'review' || !paper.model_allowed || paper.is_prediction ||
+      !recognition || !Array.isArray(recognition.stems) || recognition.stems.length > candidatesPerPage) return null;
+  const { rows: feedback } = await db.query<{ candidate_index: number }>(
+    'SELECT candidate_index FROM recognition_feedback WHERE tenant_id=$1 AND paper_id=$2', [tenant, paperId]);
+  const { rows: questions } = await db.query<{ fingerprint: string }>(
+    'SELECT fingerprint FROM paper_questions WHERE tenant_id=$1 AND paper_id=$2 AND page_number=1', [tenant, paperId]);
+  const reviewed = new Set(feedback.map(row => row.candidate_index));
+  const saved = new Set(questions.map(row => row.fingerprint));
+  const candidates: { stem: string; fingerprint: string; kind: string }[] = [];
+  let skipped = 0, pending = 0;
+  for (const [index, original] of recognition.stems.entries()) {
+    if (reviewed.has(index)) { skipped++; continue; }
+    if (typeof original !== 'string' || !original.trim() || original.includes('\u0000') || [...original].length > 8000) {
+      pending++; continue;
+    }
+    const stem = completeChoiceStem(original.trim(), choiceOptionCount(original,
+      recognition.choiceCounts?.[index], recognition.choiceOnly));
+    if (!stem) { pending++; continue; }
+    const fingerprint = createHash('sha256').update(stem).digest('hex');
+    if (saved.has(fingerprint)) { skipped++; continue; }
+    const figures = recognition.figures?.[index];
+    if ((figures && (!Array.isArray(figures) || figures.some(figure => !figure || figure.status !== 'consistent'))) ||
+        (recognition.visualContexts?.[index] && !figures?.length && !recognition.resolvedContexts?.[index])) {
+      pending++; continue;
+    }
+    const kind = /(^|\s)A[.、．)]/u.test(stem) && /(^|\s)B[.、．)]/u.test(stem) ? 'choice'
+      : /计算|求出|求值|求其|求下列/u.test(stem) ? 'calculation' : /____/u.test(stem) ? 'fill' : 'other';
+    candidates.push({ stem, fingerprint, kind });
+    saved.add(fingerprint);
+  }
+  return { candidates, skipped, pending };
 }
 
 export function registerRecognitionReview(app: FastifyInstance, pool: Pool, prefix: string, privatePapers?: PrivatePapers, localModelPreview = false) {
@@ -141,6 +180,39 @@ export function registerRecognitionReview(app: FastifyInstance, pool: Pool, pref
       activeRereads--;
     }
   });
+
+  app.post<{ Params: { paperId: string } }>(prefix + '/papers/:paperId/publish-saved-recognition',
+    { schema: { params, security } }, async (request, reply) => {
+      const tenant = request.studySession!.id;
+      const paperId = request.params.paperId;
+      const result = await asTenant(pool, tenant, async db => {
+        const { rows: [course] } = await db.query<{ course_id: string | null }>(
+          'SELECT course_id FROM papers WHERE tenant_id=$1 AND id=$2', [tenant, paperId]);
+        if (course?.course_id) await lockCourseMaterial(db, tenant, course.course_id);
+        const { rows: [paper] } = await db.query<{ status: string; media_type: string; model_allowed: boolean;
+          recognition: Awaited<ReturnType<typeof recognizeImage>> | null }>(`
+          SELECT status, media_type, model_allowed, recognition FROM papers
+          WHERE tenant_id=$1 AND id=$2 AND NOT is_prediction FOR UPDATE
+        `, [tenant, paperId]);
+        if (!paper) return { code: 'PAPER_NOT_FOUND' };
+        if (await closedBookActive(db, tenant, paperId)) return { code: 'CLOSED_BOOK_ACTIVE' };
+        const available = await savedImageCandidates(db, tenant, paperId, paper);
+        if (!available) return { code: 'RECOGNITION_UNAVAILABLE' };
+        let published = 0, skipped = available.skipped;
+        for (const { stem, fingerprint, kind } of available.candidates) {
+          const saved = await db.query(`
+            INSERT INTO paper_questions (tenant_id,paper_id,page_number,fingerprint,stem,question_kind)
+            VALUES ($1,$2,1,$3,$4,$5)
+            ON CONFLICT (tenant_id,paper_id,page_number,fingerprint) DO NOTHING
+          `, [tenant, paperId, fingerprint, stem, kind]);
+          if (saved.rowCount) published++; else skipped++;
+        }
+        // Do not manufacture human feedback, alter saved OCR/answers, or enqueue model work.
+        return { published, skipped, pending: available.pending };
+      });
+      if ('code' in result) return reply.code(result.code === 'PAPER_NOT_FOUND' ? 404 : 409).send(result);
+      return result;
+    });
 
   app.post<{ Params: { paperId: string } }>(prefix + '/papers/:paperId/retry-recognition',
     { schema: { params, security } }, async (request, reply) => {

@@ -50,3 +50,7 @@ GRANT UPDATE (school_reused) ON predictions TO :"worker_role";
 GRANT UPDATE (subject_key) ON school_paper_index TO :"worker_role";
 
 GRANT SELECT ON question_revision_history TO :"worker_role";
+
+GRANT UPDATE (assignment_reason) ON papers TO :"worker_role";
+GRANT SELECT (subject_limit) ON accounts TO :"worker_role";
+GRANT INSERT ON courses TO :"worker_role";
