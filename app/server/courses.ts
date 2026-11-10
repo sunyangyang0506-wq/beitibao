@@ -49,11 +49,22 @@ export function getProgress(pool: Pool, tenantId: string) {
         FROM paper_questions q
         JOIN papers p ON (q.tenant_id, q.paper_id) = (p.tenant_id, p.id) AND NOT p.is_prediction
         LEFT JOIN current_question_equivalence e ON (e.tenant_id, e.member_id) = (q.tenant_id, q.id)
-        LEFT JOIN practice_results settled ON (settled.tenant_id, settled.paper_id) = (q.tenant_id, q.paper_id)
-        LEFT JOIN practice_attempts a ON (a.tenant_id, a.paper_id) = (q.tenant_id, q.paper_id)
         LEFT JOIN question_recall r ON (r.tenant_id, r.question_id) = (q.tenant_id, q.id)
-        WHERE q.tenant_id = $1 AND (r.self_rating IS NOT NULL OR CASE WHEN settled.paper_id IS NOT NULL THEN q.id = ANY(settled.covered)
-          ELSE a.submitted_at IS NOT NULL AND coalesce(a.answers ->> q.id::text, '') ~ '[^[:space:]]' END)
+        WHERE q.tenant_id = $1 AND (
+          (r.self_rating IS NOT NULL AND coalesce(r.assessed_revision, 1) = q.input_revision
+            AND practice_stem_key(coalesce(r.stem_correction,q.stem)) = practice_stem_key(q.stem))
+          OR EXISTS (
+            SELECT 1 FROM submitted_practice_history a
+            CROSS JOIN LATERAL jsonb_array_elements(a.questions) input
+            WHERE a.tenant_id=q.tenant_id AND a.paper_id=q.paper_id AND input->>'id'=q.id::text
+              AND coalesce((input->>'inputRevision')::int,1)=q.input_revision
+              AND practice_stem_key(input->>'stem') = practice_stem_key(coalesce(r.stem_correction,q.stem))
+              AND (input->>'visualReview') IS NOT DISTINCT FROM q.visual_review
+              AND (NOT input ? 'kind' OR input->>'kind'=q.question_kind)
+              AND CASE WHEN a.covered IS NOT NULL THEN q.id=ANY(a.covered)
+                ELSE coalesce(a.answers->>q.id::text,'') ~ '[^[:space:]]' END
+          )
+        )
       )
       SELECT c.id, c.name, c.teacher, c.term,
         to_char(c.exam_at AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD"T"HH24:MI') AS "examAt",

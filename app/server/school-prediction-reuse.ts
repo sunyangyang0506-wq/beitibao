@@ -41,6 +41,8 @@ async function schoolInput(db: PoolClient, tenant: string, courseId: string, evi
       AND NOT EXISTS (SELECT 1 FROM paper_page_recognition r WHERE (r.tenant_id,r.paper_id)=(p.tenant_id,p.id) AND r.reviewed_at IS NULL)
   `, [tenant, courseId, school, subject]);
   if (!rows.length || rows.some(row => !row.authorized || !row.school_content_key)) return null;
+  const revised = await db.query(`SELECT 1 FROM paper_questions WHERE tenant_id=$1 AND paper_id=ANY($2::uuid[]) AND input_revision>1 LIMIT 1`, [tenant, rows.map(row => row.id)]);
+  if (revised.rowCount) return null;
   const papers = new Map(rows.map(row => [row.id, row.school_content_key!]));
   const stableById = new Map<string, string>();
   for (const question of evidence) {

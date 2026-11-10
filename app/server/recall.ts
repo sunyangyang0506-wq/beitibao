@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 import { closedBookActive } from './practice.js';
 import { asTenant } from './db.js';
+import { reviseQuestion } from './question-versions.js';
 
 export const questionKinds = ['choice', 'fill', 'calculation', 'short_answer', 'other'];
 const uuid = { type: 'string', format: 'uuid' };
@@ -10,23 +11,18 @@ const security = [{ session: [] }];
 
 export function registerRecallRoutes(app: FastifyInstance, pool: Pool, prefix: string, modelsEnabled = true) {
   const questionPath = prefix + '/papers/:paperId/questions/:questionId';
-  app.post<{ Params: { paperId: string; questionId: string }; Body: { stem: string } }>(
+  app.post<{ Params: { paperId: string; questionId: string }; Body: { stem: string; inputRevision?: number } }>(
     questionPath + '/stem-correction', { bodyLimit: 48 * 1024, schema: { params, security, body: {
       type: 'object', additionalProperties: false, required: ['stem'], properties: {
-        stem: { type: 'string', minLength: 1, maxLength: 8000 }
+        stem: { type: 'string', minLength: 1, maxLength: 8000 }, inputRevision: { type: 'integer', minimum: 1 }
       }
     } } }, async (request, reply) => {
       const { paperId, questionId } = request.params;
       const tenant = request.studySession!.id;
       const stem = request.body.stem.trim();
       if (!stem || stem.includes('\u0000')) return reply.code(400).send({ code: 'INVALID_QUESTION' });
-      const { rows: [saved] } = await asTenant(pool, tenant, db => db.query<{ stemCorrection: string | null }>(`
-        INSERT INTO question_recall (tenant_id, question_id, stem_correction)
-        SELECT tenant_id, id, NULLIF($4, stem) FROM paper_questions
-        WHERE tenant_id = $1 AND paper_id = $2 AND id = $3
-        ON CONFLICT (tenant_id, question_id) DO UPDATE SET stem_correction = excluded.stem_correction
-        RETURNING stem_correction AS "stemCorrection"
-      `, [tenant, paperId, questionId, stem]));
+      const saved = await asTenant(pool, tenant, db => reviseQuestion(db, tenant, paperId, questionId, stem, modelsEnabled, request.body.inputRevision ?? 1));
+      if (saved && 'conflict' in saved) return reply.code(409).send({ code: 'QUESTION_VERSION_CONFLICT' });
       return saved ?? reply.code(404).send({ code: 'PAPER_NOT_FOUND' });
     });
 
@@ -65,7 +61,7 @@ export function registerRecallRoutes(app: FastifyInstance, pool: Pool, prefix: s
         if (await closedBookActive(db, tenant, paperId)) return { locked: true };
         const key = [tenant, paperId, questionId];
         const { rows: [question] } = await db.query(`
-          SELECT reference, model_solution AS "modelSolution", solution_status AS "solutionStatus"
+          SELECT input_revision AS "inputRevision", reference, model_solution AS "modelSolution", solution_status AS "solutionStatus"
           FROM paper_questions WHERE tenant_id = $1 AND paper_id = $2 AND id = $3
         `, key);
         if (!question) return null;
@@ -112,16 +108,16 @@ export function registerRecallRoutes(app: FastifyInstance, pool: Pool, prefix: s
       `, [tenant, paperId, questionId, JSON.stringify(correction)]));
       return saved.rows[0] ?? reply.code(404).send({ code: 'PAPER_NOT_FOUND' });
     });
-  app.post<{ Params: { paperId: string; questionId: string }; Body: { rating: string } }>(
+  app.post<{ Params: { paperId: string; questionId: string }; Body: { rating: string; inputRevision?: number } }>(
     questionPath + '/assessment', { schema: { params, security, body: {
       type: 'object', required: ['rating'], properties: {
-        rating: { type: 'string', enum: ['mastered', 'partial', 'needs_practice'] }
+        rating: { type: 'string', enum: ['mastered', 'partial', 'needs_practice'] }, inputRevision: { type: 'integer', minimum: 1 }
       }
     } } }, async (request, reply) => {
       const tenant = request.studySession!.id;
       const { paperId, questionId } = request.params;
       const { rows: [result] } = await asTenant(pool, tenant, db => db.query(`
-        UPDATE question_recall r SET self_rating = $4,
+        UPDATE question_recall r SET self_rating = $4, assessed_revision = q.input_revision,
           had_recall_difficulty = r.had_recall_difficulty OR $4 IN ('partial', 'needs_practice'),
           mistake_recorded_at = CASE WHEN $4 IN ('partial', 'needs_practice')
             THEN coalesce(r.mistake_recorded_at, statement_timestamp()) ELSE r.mistake_recorded_at END,
@@ -129,9 +125,9 @@ export function registerRecallRoutes(app: FastifyInstance, pool: Pool, prefix: s
             THEN statement_timestamp() ELSE r.last_mistake_at END
         FROM paper_questions q
         WHERE (q.tenant_id, q.id) = (r.tenant_id, r.question_id)
-          AND r.tenant_id = $1 AND q.paper_id = $2 AND r.question_id = $3 AND r.revealed
+          AND r.tenant_id = $1 AND q.paper_id = $2 AND r.question_id = $3 AND r.revealed AND q.input_revision=$5
         RETURNING self_rating AS "selfRating"
-      `, [tenant, paperId, questionId, request.body.rating]));
+      `, [tenant, paperId, questionId, request.body.rating, request.body.inputRevision ?? 1]));
       return result ?? reply.code(404).send({ code: 'PAPER_NOT_FOUND' });
     });
   app.post<{ Params: { paperId: string; questionId: string }; Body: { bookmarked: boolean } }>(

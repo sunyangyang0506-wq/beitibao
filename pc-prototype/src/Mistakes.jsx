@@ -146,11 +146,17 @@ export function MistakeRetry({ item, api, csrf, onExpired, onSaved, onClose, clo
       {error && <p role="alert">{error}</p>}
     </form>
     {result && <>
-      <p role="status">{grades[result.result]}</p>
-      <KnowledgePoints points={result.knowledgePoints} />
-      <p>参考答案　{result.reference.answers.join('、')}</p>
-      {result.reference.explanation && <p className="pc-confirmed-stem">{result.reference.explanation}</p>}
+      <MistakeRetryFeedback result={result} />
       <button onClick={() => { setResult(null); setAnswer(''); setAttemptKey(crypto.randomUUID()); }}>再练一次</button>
     </>}
   </section>;
+}
+
+export function MistakeRetryFeedback({ result }) {
+  return <>
+    <p role="status">{grades[result.result]}</p>
+    <KnowledgePoints points={result.knowledgePoints} />
+    <p>参考答案　{result.reference?.answers.join('、') ?? '历史参考答案不可用，无法自动判定。'}</p>
+    {result.reference?.explanation && <p className="pc-confirmed-stem">{result.reference.explanation}</p>}
+  </>;
 }

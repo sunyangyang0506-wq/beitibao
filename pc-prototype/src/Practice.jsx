@@ -1,3 +1,4 @@
+import { samePracticeAttempt } from './practice-draft.js';
 import { libraryStatusLabels } from './paper-library-status.js';
 import { MistakeRetry } from './Mistakes.jsx';
 import { KnowledgeNetwork, KnowledgePoints } from './Knowledge.jsx';
@@ -140,6 +141,8 @@ function jumpToQuestion(id) {
 
 export function Attempt({ paperId, api, csrf, onOpen, onExpired, embedded = false }) {
   const [attempt, setAttempt] = useState(null);
+  const [historyId, setHistoryId] = useState('');
+  const [history, setHistory] = useState([]);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [answers, setAnswers] = useState({});
   const [draft, setDraft] = useState(blankDraft);
@@ -161,9 +164,14 @@ export function Attempt({ paperId, api, csrf, onOpen, onExpired, embedded = fals
     const controller = new AbortController();
     const requested = Number(new URL(location.href).searchParams.get('duration'));
     const data = Number.isInteger(requested) && requested >= 1 && requested <= 360 ? { durationMinutes: requested } : {};
-    api(path, { data, csrf, signal: controller.signal }).then(result => {
+    setAttempt(null); setError(''); setNotice(''); setRetryQuestion(null); setResultFilter('');
+    api(historyId ? path + '/history/' + historyId : path, { ...(historyId ? {} : { data, csrf }), signal: controller.signal }).then(result => {
       if (controller.signal.aborted) return;
-      const saved = result.submittedAt ? null : localAttemptDraft(draftKey);
+      const stored = result.submittedAt ? null : localAttemptDraft(draftKey);
+      const saved = samePracticeAttempt(stored?.attemptId, result.attemptId) ? stored : null;
+      if (stored && !saved) {
+        try { sessionStorage.setItem(draftKey + ':' + (stored.attemptId ?? 'legacy'), JSON.stringify(stored)); } catch {}
+      }
       const ids = new Set(result.questions.map(question => question.id));
       const localChanges = Object.fromEntries(Object.entries(saved?.changes ?? {})
         .filter(([id, value]) => ids.has(id) && typeof value === 'string'));
@@ -182,22 +190,33 @@ export function Attempt({ paperId, api, csrf, onOpen, onExpired, embedded = fals
       else setError(failure.message);
     });
     return () => controller.abort();
-  }, [api, path, csrf, onExpired, draftKey]);
+  }, [api, path, csrf, onExpired, draftKey, historyId]);
 
   useEffect(() => {
-    if (!attempt) return;
+    if (!attempt?.submittedAt) return;
+    const controller = new AbortController();
+    api(path + '/history', { signal: controller.signal }).then(result => {
+      if (!controller.signal.aborted) setHistory(result.history);
+    }).catch(failure => {
+      if (!controller.signal.aborted) setError(failure.message);
+    });
+    return () => controller.abort();
+  }, [attempt?.submittedAt, path, api]);
+
+  useEffect(() => {
+    if (!attempt || attempt.historical) return;
     const changes = changesSince(answers, attempt.answers);
     try {
       if (attempt.submittedAt || (!Object.keys(changes).length && JSON.stringify(draft) === JSON.stringify(attempt.draft ?? blankDraft))) {
         sessionStorage.removeItem(draftKey);
       } else {
-        sessionStorage.setItem(draftKey, JSON.stringify({ changes, draft }));
+        sessionStorage.setItem(draftKey, JSON.stringify({ changes, draft, attemptId: attempt.attemptId }));
       }
     } catch { /* The server draft remains available if browser storage is disabled. */ }
   }, [attempt, answers, draft, draftKey]);
 
   useEffect(() => {
-    if (!attempt?.submittedAt || !attempt.questions.some(question => ['queued', 'processing'].includes(question.solutionStatus))) return;
+    if (attempt?.historical || !attempt?.submittedAt || !attempt.questions.some(question => ['queued', 'processing'].includes(question.solutionStatus))) return;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
@@ -274,6 +293,10 @@ export function Attempt({ paperId, api, csrf, onOpen, onExpired, embedded = fals
         try {
           const latest = await api(path);
           if (settled.current) return;
+          if (!samePracticeAttempt(latest.attemptId, attempt.attemptId)) {
+            setError('已开启新版练习。此窗口的旧版输入已保留，未合并到新版；请返回练习列表重新打开。');
+            return;
+          }
           settled.current = Boolean(latest.submittedAt);
           setAttempt(latest);
           if (latest.submittedAt) {
@@ -310,6 +333,12 @@ export function Attempt({ paperId, api, csrf, onOpen, onExpired, embedded = fals
     {error && <p className="pc-status" role="alert">{error}</p>}
     {notice && <p className="pc-status" role="status">{notice}</p>}
     {!attempt && !error && <p role="status">正在加载练习…</p>}
+    {attempt?.inputChanged && <p role="status">题目已有新版本。本次仍保留开练时的题面，旧版本作答不计入新版覆盖。</p>}
+    {attempt?.submittedAt && history.length > 0 && <label>作答记录<select value={historyId} onChange={event => setHistoryId(event.target.value)}>
+      <option value="">当前练习</option>
+      {history.map(item => <option key={item.id} value={item.id}>历史作答 · {new Date(item.submittedAt).toLocaleString('zh-CN')}</option>)}
+    </select></label>}
+    {attempt?.historical && <p role="status">历史作答：题面、答案和成绩按原版本保留。</p>}
     {attempt && !attempt.submittedAt && <p role="status">{saving ? '保存中…' : dirty ? '有未保存的修改' : '草稿已同步'}</p>}
     {retryQuestion ? <MistakeRetry key={retryQuestion.id} item={{ ...retryQuestion, paperTitle: attempt.title }}
       api={api} csrf={csrf} onExpired={onExpired} closeLabel="返回交卷结果" onClose={() => {
@@ -336,10 +365,10 @@ export function Attempt({ paperId, api, csrf, onOpen, onExpired, embedded = fals
           onAnswer={value => setAnswers(current => ({ ...current, [question.id]: value }))} />
         {attempt.submittedAt && <div className="pc-confirmed-stem">
           <strong>{questionResultLabel(question)}</strong>
-          {question.result === 'incorrect' && <button type="button" onClick={() => {
+          {!attempt.historical && question.result === 'incorrect' && <button type="button" onClick={() => {
             setRetryQuestion(question); window.scrollTo(0, 0);
           }}>重练本题</button>}
-          {question.stemCorrection && <p>题干已纠正，下方解析对应原题干。可保存自己的答案和解析。</p>}
+          {question.inputChanged && <p>题干已有新版，下方保留本次作答的原题、答案和成绩。</p>}
           {question.referenceChanged && <p>参考答案已更新。下方显示交卷时的答案和解析。</p>}
           {question.reference && <>
             <p>参考答案（{question.reference.source === 'teacher' ? '教师提供' : '已核验'}）</p>
@@ -377,8 +406,8 @@ export function Attempt({ paperId, api, csrf, onOpen, onExpired, embedded = fals
               else setError(failure.message);
             }
           }}>重试生成答案</button>}
-          <AnswerCorrection question={question} path={'/papers/' + paperId + '/questions/' + question.id}
-            api={api} csrf={csrf} onExpired={onExpired} />
+          {!attempt.historical && <AnswerCorrection question={question} path={'/papers/' + paperId + '/questions/' + question.id}
+            api={api} csrf={csrf} onExpired={onExpired} />}
         </div>}
       </div>)}
       {!attempt.submittedAt && <div className="pc-dialog-actions pc-confirmed-title">

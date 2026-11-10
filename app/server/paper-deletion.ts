@@ -16,20 +16,25 @@ export function registerPaperDeletion(app: FastifyInstance, pool: Pool, prefix: 
         'SELECT course_id FROM papers WHERE tenant_id = $1 AND id = $2', [tenant, paperId]);
       if (!paper) return false;
       if (paper.course_id) await lockCourseMaterial(db, tenant, paper.course_id);
-      const { rows: [locked] } = await db.query<{ course_id: string | null }>(
-        'SELECT course_id FROM papers WHERE tenant_id = $1 AND id = $2 FOR UPDATE', [tenant, paperId]);
+      // Discover first, then lock the entire deletion set in UUID order. Taking
+      // the selected source first can deadlock with a history/mistake list that
+      // already holds a lower-ID related prediction paper.
+      const relationSql = `SELECT id, paper_id FROM predictions WHERE tenant_id=$1 AND course_id=$2 AND
+        (paper_id=$3 OR evidence @> jsonb_build_array(jsonb_build_object('paperId',$3::uuid)))`;
+      const relationKey = [tenant, paper.course_id, paperId];
+      const related = await db.query<{ id: string; paper_id: string | null }>(relationSql, relationKey);
+      const paperIds = [...new Set([paperId, ...related.rows.flatMap(row => row.paper_id ? [row.paper_id] : [])])].sort();
+      const key = [tenant, paperIds];
+      const { rows: originals } = await db.query<{ id: string; course_id: string | null; model_cache_key: string | null }>(
+        'SELECT id, course_id, model_cache_key FROM papers WHERE tenant_id=$1 AND id=ANY($2::uuid[]) ORDER BY id FOR UPDATE', key);
+      const locked = originals.find(row => row.id === paperId);
       if (!locked) return false;
       if (locked.course_id !== paper.course_id) return 'changed' as const;
-      const related = await db.query<{ id: string; paper_id: string | null }>(`
-        SELECT id, paper_id FROM predictions WHERE tenant_id = $1 AND course_id = $2 AND
-          (paper_id = $3 OR evidence @> jsonb_build_array(jsonb_build_object('paperId', $3::uuid)))
-        FOR UPDATE
-      `, [tenant, paper.course_id, paperId]);
-      const paperIds = [paperId, ...related.rows.flatMap(row => row.paper_id ? [row.paper_id] : [])];
-      const key = [tenant, paperIds];
-      const { rows: originals } = await db.query<{ model_cache_key: string | null }>(
-        'SELECT model_cache_key FROM papers WHERE tenant_id = $1 AND id = ANY($2::uuid[]) ORDER BY id FOR UPDATE', key);
-      if (!originals.length) return false;
+      const checked = await db.query<{ id: string; paper_id: string | null }>(relationSql + ' ORDER BY id FOR UPDATE', relationKey);
+      const relationIdentity = (rows: typeof related.rows) => rows.map(row => row.id + ':' + row.paper_id).sort().join(',');
+      // Course-locked publication should keep the set stable. Fail closed if a
+      // different writer changed it rather than extending locks out of order.
+      if (relationIdentity(checked.rows) !== relationIdentity(related.rows)) return 'changed' as const;
       const { rows: questions } = await db.query<{ id: string }>(
         'SELECT id FROM paper_questions WHERE tenant_id = $1 AND paper_id = ANY($2::uuid[])', key);
       const questionKey = [tenant, questions.map(row => row.id)];
@@ -52,10 +57,10 @@ export function registerPaperDeletion(app: FastifyInstance, pool: Pool, prefix: 
         DELETE FROM question_equivalence WHERE tenant_id = $1
           AND (anchor_id = ANY($2::uuid[]) OR member_id = ANY($2::uuid[]))
       `, questionKey);
-      for (const table of ['question_recall', 'mistake_retries']) {
+      for (const table of ['question_revision_history', 'question_recall', 'mistake_retries']) {
         await db.query(`DELETE FROM ${table} WHERE tenant_id = $1 AND question_id = ANY($2::uuid[])`, questionKey);
       }
-      for (const table of ['recognition_feedback', 'paper_page_recognition', 'practice_results',
+      for (const table of ['practice_history', 'recognition_feedback', 'paper_page_recognition', 'practice_results',
         'practice_deadline_outbox', 'practice_attempts', 'paper_questions']) {
         await db.query(`DELETE FROM ${table} WHERE tenant_id = $1 AND paper_id = ANY($2::uuid[])`, key);
       }

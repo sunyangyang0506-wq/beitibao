@@ -40,7 +40,7 @@ const optionKey = (text: string) => text.normalize('NFC').replace(/\r\n/g, '\n')
 const multipleAnswers = /(?:[多複复][選选][擇择]?[題题]|可[多複复][選选]|[選选]出(?:所有|全部)|select all that apply)/iu;
 
 export async function solveQuestion(stem: string, request = fetch, image?: SolutionImage | SolutionImage[], paperText?: string,
-  selectedModel?: string, questionKind?: string) {
+  selectedModel?: string, questionKind?: string, personalRevision = false) {
   const endpoint = solutionEndpoint();
   if (!endpoint) throw new Error('MODEL_NOT_CONFIGURED');
   const textSingleChoice = !image && (questionKind === undefined || questionKind === 'choice') && !multipleAnswers.test(stem);
@@ -56,6 +56,7 @@ export async function solveQuestion(stem: string, request = fetch, image?: Solut
       max_tokens: 3400, response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: solutionPrompt + referenceAnswerInstructions + (options.length ? choiceChecks : solutionChecks) +
+          (personalRevision ? '当前题干是用户明确保存的个人修订版，以当前题干为准，不得用原卷旧题干或旧参考答案替换；原卷仅提供未被修订的图表和共用材料背景。若背景与新条件冲突或无法对应，标记 insufficient_evidence。' : '') +
           '如果图表、公式、选项或共享材料缺失，标记 insufficient_evidence，答案留空，说明缺失内容。' },
         { role: 'user', content: solutionContent(paperText ? JSON.stringify({ stem, paperText }) : stem, image) }
       ]
@@ -72,7 +73,7 @@ export async function solveQuestion(stem: string, request = fetch, image?: Solut
       || data.answer.length > 4000 || data.explanation.length > 8000
       || data.answer.includes('\u0000') || data.explanation.includes('\u0000')
       || !data.explanation.trim() || (data.status === 'solved' && !data.answer.trim())) throw new Error('INVALID_SOLUTION');
-  const metadata = { model: chosenModel, promptVersion: solutionPromptVersion, ...knowledgeMetadata(data) };
+  const metadata = { model: chosenModel, promptVersion: solutionPromptVersion + (personalRevision ? '-personal-v1' : ''), ...knowledgeMetadata(data) };
   if (data.status === 'insufficient_evidence') return { ...metadata, status: 'insufficient_evidence' as const, answer: '', explanation: data.explanation.trim() };
   let answer = data.answer.trim();
   if (options.length) {
@@ -89,7 +90,7 @@ export async function solveQuestion(stem: string, request = fetch, image?: Solut
 
 export async function processNextSolution(pool: Pool, solve = solveQuestion, storage?: PaperStorage, target?: JobTarget) {
   const lease = randomUUID();
-  const { rows: [question] } = await pool.query<{ tenant_id: string; id: string; stem: string; question_kind: string; cache_key: string | null; paper_id: string; page_number: number; source_pages: number[]; visual_review: string | null; solution_attempt_count: number; school_standalone: boolean; school_needs_image: boolean }>(`
+  const { rows: [question] } = await pool.query<{ tenant_id: string; id: string; stem: string; input_revision: number; question_kind: string; cache_key: string | null; paper_id: string; page_number: number; source_pages: number[]; visual_review: string | null; solution_attempt_count: number; school_standalone: boolean; school_needs_image: boolean }>(`
     WITH next AS (
       SELECT q.tenant_id, q.id FROM paper_questions q
       WHERE (solution_status = 'queued' OR (solution_status = 'processing' AND solution_lease_until <= now()))
@@ -100,7 +101,7 @@ export async function processNextSolution(pool: Pool, solve = solveQuestion, sto
     UPDATE paper_questions q SET solution_status = 'processing',
       solution_lease = $1, solution_lease_until = now() + interval '205 seconds', solution_failure = NULL, solution_finished_at = NULL, solution_attempt_count = q.solution_attempt_count + 1
     FROM next WHERE (q.tenant_id, q.id) = (next.tenant_id, next.id)
-    RETURNING q.tenant_id, q.id, q.stem, q.question_kind, q.paper_id, q.page_number, q.source_pages, q.visual_review, q.solution_attempt_count,
+    RETURNING q.tenant_id, q.id, q.stem, q.input_revision, q.question_kind, q.paper_id, q.page_number, q.source_pages, q.visual_review, q.solution_attempt_count,
       (SELECT p.model_cache_key FROM papers p WHERE (p.tenant_id, p.id) = (q.tenant_id, q.paper_id)) AS cache_key,
       EXISTS (
         SELECT 1 FROM paper_page_recognition r JOIN papers p ON (p.tenant_id,p.id)=(r.tenant_id,r.paper_id)
@@ -121,7 +122,7 @@ export async function processNextSolution(pool: Pool, solve = solveQuestion, sto
   let standaloneSolution = false;
   let originalImagePages: number[] = [];
   try {
-    if (question.cache_key && !question.visual_review && !question.school_needs_image) {
+    if (question.input_revision === 1 && question.cache_key && !question.visual_review && !question.school_needs_image) {
       const { rows: [cached] } = await asTenant(pool, question.tenant_id, db =>
         db.query<{ solutions: (Awaited<ReturnType<typeof solveQuestion>> & { stem: string })[] }>(
           'SELECT solutions FROM paper_model_cache WHERE cache_key = $1', [question.cache_key]));
@@ -148,7 +149,7 @@ export async function processNextSolution(pool: Pool, solve = solveQuestion, sto
       const useText = !original || (pdf && !needsImage && question.source_pages.length < 2);
       if (useText) {
         try {
-          solution = await solve(stem, request, undefined, paperText, undefined, question.question_kind);
+          solution = await solve(stem, request, undefined, paperText, undefined, question.question_kind, question.input_revision > 1);
           standaloneSolution = standalone && solution.status === 'solved';
         } catch (error) {
           if (!pdf || (error instanceof Error && ['MODEL_BUDGET_LIMIT', 'MODEL_NOT_CONFIGURED'].includes(error.message))) throw error;
@@ -172,12 +173,12 @@ export async function processNextSolution(pool: Pool, solve = solveQuestion, sto
         }
         const visual = images.length > 1 ? images : images[0];
         try {
-          solution = await solve(stem, request, visual, paperText, pdf ? 'qwen3.5-flash-2026-02-23' : undefined);
+          solution = await solve(stem, request, visual, paperText, pdf ? 'qwen3.5-flash-2026-02-23' : undefined, question.question_kind, question.input_revision > 1);
         } catch (error) {
           if (!pdf || (error instanceof Error && ['MODEL_BUDGET_LIMIT', 'MODEL_NOT_CONFIGURED'].includes(error.message))) throw error;
         }
         if (pdf && (!solution || solution.status === 'insufficient_evidence')) {
-          solution = await solve(stem, request, visual, paperText);
+          solution = await solve(stem, request, visual, paperText, undefined, question.question_kind, question.input_revision > 1);
         }
       }
     }

@@ -26,9 +26,13 @@ CREATE ROLE beitibao_test_release_page LOGIN NOSUPERUSER NOBYPASSRLS;
 CREATE ROLE beitibao_test_release_solution LOGIN NOSUPERUSER NOBYPASSRLS;
 CREATE ROLE beitibao_test_release_prediction LOGIN NOSUPERUSER NOBYPASSRLS;
 CREATE DATABASE beitibao_test;
+CREATE ROLE beitibao_test_version_owner LOGIN NOSUPERUSER NOBYPASSRLS;
+CREATE DATABASE beitibao_version_upgrade OWNER beitibao_test_version_owner;
 SQL
 export PGDATABASE=beitibao_test
 export MIGRATION_DATABASE_URL="postgresql://beitibao_test_admin@localhost/beitibao_test?host=$sandbox"
+export VERSION_UPGRADE_DATABASE_URL="postgresql://beitibao_test_version_owner@localhost/beitibao_version_upgrade?host=$sandbox"
+export VERSION_UPGRADE_ADMIN_DATABASE_URL="postgresql://beitibao_test_admin@localhost/beitibao_version_upgrade?host=$sandbox"
 export DATABASE_URL="postgresql://beitibao_test_api@localhost/beitibao_test?host=$sandbox"
 if [[ "${1:-}" == "--upgrade-fixture" || "${1:-}" == "--release-restore" ]]; then
   node eval/run-upgrade-fixture.mjs prepare

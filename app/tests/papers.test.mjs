@@ -570,8 +570,9 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.equal((await request(owner, 'POST', referencePath, { ...reference, answers: ['6 cm'] })).statusCode, 200);
     const changed = (await request(owner, 'GET', mixed + '/practice')).json().questions.find(item => item.id === crossPage);
     assert.equal(changed.referenceChanged, true);
-    assert.equal(changed.result, 'needs_review');
+    assert.equal(changed.result, 'incorrect'); // Saved grade stays tied to the original teacher answer.
     assert.deepEqual(changed.reference, reference);
+    assert.equal((await admin.query('SELECT graded->>$2 AS grade FROM practice_results WHERE paper_id=$1', [mixedUpload.json().paper.id, crossPage])).rows[0].grade, 'incorrect');
     assert.equal((await request(owner, 'POST', retryPath, { ...wrong, attemptKey: randomUUID() })).json().result, 'needs_review');
 
     const variant = Buffer.concat([pdf, Buffer.from('\n% independently uploaded variant\n')]);
@@ -644,7 +645,8 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.equal((await request(owner, 'POST', editPath, { stem: 'Corrected in practice.' })).json().stemCorrection, 'Corrected in practice.');
     const during = (await request(owner, 'GET', unorderedPath + '/practice')).json().questions[0];
     assert.equal(during.stem, first.stem);
-    assert.equal(during.stemCorrection, 'Corrected in practice.');
+    assert.equal(during.inputChanged, true);
+    assert.equal(during.stemCorrection, undefined);
     assert.equal(during.reference, undefined);
 
 
