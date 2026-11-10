@@ -4,9 +4,12 @@ import { asTenant } from './db.js';
 
 type Task = 'paper' | 'page' | 'solution' | 'prediction' | 'figure';
 type Rate = { input: number; output: number; maxInput: number };
-const rates = new Map<string, Rate>([
+// CNY per million tokens is numerically equal to micro-CNY per token.
+// Beijing realtime list prices; Plus thinking output includes reasoning + answer.
+// Verified 2026-11-10: https://help.aliyun.com/zh/model-studio/qwen-plus
+const rates = new Map<string, Rate & { thinkingOutput?: number }>([
   ['qwen-flash-2025-07-28', { input: 0.15, output: 1.5, maxInput: 32_000 }],
-  ['qwen-plus-2025-12-01', { input: 0.8, output: 2, maxInput: 32_000 }],
+  ['qwen-plus-2025-12-01', { input: 0.8, output: 2, thinkingOutput: 8, maxInput: 32_000 }],
   ['qwen3.5-flash-2026-02-23', { input: 0.2, output: 2, maxInput: 32_000 }],
   ['qwen3-vl-plus', { input: 1, output: 10, maxInput: 32_000 }]
 ]);
@@ -118,7 +121,18 @@ async function usageOf(response: Response, rate: Rate): Promise<Usage> {
       Number.isSafeInteger(output) && output >= 0 && output <= 2_000_000) {
     // If a provider exceeds the reserved input tier, retain the reservation for reconciliation.
     if (input > rate.maxInput) return { ...fields, state: 'unknown', spent: 0, input, output };
+    // completion_tokens already includes reasoning_tokens; never add the detail again.
     return { ...fields, state: 'metered', spent: estimate(rate, input, output), input, output };
+  }
+  // A 402 status alone does not prove zero usage. Only an explicit pre-call
+  // billing rejection with no usage field can release the reservation. Partial,
+  // malformed or oversized usage must remain held for billing reconciliation.
+  if (response.status === 402) {
+    const object = body !== null && typeof body === 'object' && !Array.isArray(body);
+    const code = object ? body.error?.code ?? body.code : null;
+    const rejectedBeforeProcessing = object && !Object.hasOwn(body, 'usage') &&
+      ['Arrearage', 'ServiceInDebt', 'AccessDenied.Arrearage', 'InsufficientBalance'].includes(code);
+    return { ...fields, state: rejectedBeforeProcessing ? 'rejected' : 'unknown', spent: 0 };
   }
   return { ...fields, state: [400, 401, 403, 404, 429].includes(response.status) ? 'rejected' : 'unknown', spent: 0 };
 }
@@ -131,13 +145,18 @@ export function modelRequest(pool: Pool, tenant: string, task: Task, request = f
         target.href !== `https://${workspace}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions` ||
         options?.method !== 'POST' || typeof options.body !== 'string') throw new Error('INVALID_MODEL_REQUEST');
     const body = JSON.parse(options.body);
-    const rate = rates.get(body.model);
-    if (!rate || body.stream === true || !Number.isSafeInteger(body.max_tokens) ||
+    const modelRate = rates.get(body.model);
+    if (!modelRate || body.stream === true || !Number.isSafeInteger(body.max_tokens) ||
+        (body.enable_thinking !== undefined && typeof body.enable_thinking !== 'boolean') ||
         body.max_tokens < 1 || body.max_tokens > 8192) throw new Error('INVALID_MODEL_REQUEST');
     const thinking = body.enable_thinking === true ? body.thinking_budget : 0;
     if (!Number.isSafeInteger(thinking) || thinking < 0 || thinking > 2048 || (body.enable_thinking === true && !thinking)) {
       throw new Error('INVALID_MODEL_REQUEST');
     }
+    // Select once so reservation and settlement use the same request mode.
+    // Plus defaults to non-thinking when enable_thinking is omitted.
+    const rate: Rate = { ...modelRate,
+      output: body.enable_thinking === true ? modelRate.thinkingOutput ?? modelRate.output : modelRate.output };
     const invocation = await reserve(pool, tenant, task, body.model, estimate(rate, rate.maxInput, body.max_tokens + thinking),
       rate.maxInput + body.max_tokens + thinking);
     let usage: Usage = { state: 'unknown', spent: 0 };

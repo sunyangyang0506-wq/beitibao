@@ -1,3 +1,4 @@
+import { predictionFailureMessage } from './prediction-failure.js';
 import React, { useEffect, useState } from 'react';
 import { Attempt } from './Practice.jsx';
 
@@ -5,15 +6,7 @@ const labels = {
   queued: '等待生成', processing: '正在生成', ready: '可练习', failed: '生成失败', superseded: '源题已更新'
 };
 
-const failureLabels = {
-  MODEL_BUDGET_LIMIT: '已达到当天模型预算，已生成的练习仍可使用。',
-  MODEL_RATE_LIMIT: '当前已达到推理容量，请稍后重试。',
-  PREDICTION_TIMEOUT: '模型响应超时，请稍后重试。',
-  PREDICTION_RATE_LIMITED: '模型调用暂时限流，请稍后重试。',
-  PREDICTION_VERIFICATION_FAILED: '通过复算的候选题数量不足，请重试。',
-  INVALID_PREDICTION: '本次题目没有通过结构或证据校验，请重试。',
-  MODEL_NOT_CONFIGURED: '后台预测模型尚未配置。'
-};
+
 
 export function Predictions({ initialCourseId, courses, api, csrf, onOpen, onExpired }) {
   const [selected, setSelected] = useState(initialCourseId ?? '');
@@ -88,7 +81,7 @@ function PredictionJob({ courseId, api, csrf, onOpen, onExpired }) {
     {data?.enabled && data.waitingForPapers && <p role="status">正在识别同科试卷，完成后自动生成预测卷。</p>}
     {data?.enabled && !status && enoughEvidence && !data.waitingForPapers && <p role="status">符合条件的新上传试卷识别完毕后会自动生成预测卷。已有试卷也可手动生成。</p>}
     {status && <p role="status">{labels[status]}
-      {status === 'failed' && '。' + (failureLabels[data.prediction.failure] ?? '请稍后重试。')}</p>}
+      {status === 'failed' && '。' + predictionFailureMessage(data.prediction.failure)}</p>}
     {error && <div role="alert">{error} <button onClick={() => setRevision(value => value + 1)}>重新读取</button></div>}
     {status === 'ready' && <p>可直接在本页作答，交卷后查看参考答案、解析和出题依据。</p>}
     {status === 'ready' && data.prediction.schoolReused && <p className="pc-status" role="status">已复用同校整套预测卷</p>}

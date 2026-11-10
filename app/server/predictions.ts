@@ -1,3 +1,4 @@
+import { isTerminalModelFailure } from './model-provider-errors.js';
 import { knowledgeMetadata } from './knowledge.js';
 import { createHash, randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
@@ -171,7 +172,7 @@ export async function processNextPrediction(pool: Pool, generate?: (evidence: Ev
     } catch (error) {
       questions = null;
       const code = error instanceof Error ? error.message : '';
-      failure = ['INVALID_PREDICTION', 'PREDICTION_VERIFICATION_FAILED', 'MODEL_BUDGET_LIMIT', 'MODEL_RATE_LIMIT',
+      failure = isTerminalModelFailure(code) || ['INVALID_PREDICTION', 'PREDICTION_VERIFICATION_FAILED', 'MODEL_BUDGET_LIMIT', 'MODEL_RATE_LIMIT',
         'PREDICTION_RATE_LIMITED', 'PREDICTION_TIMEOUT', 'MODEL_NOT_CONFIGURED'].includes(code)
         ? code : 'PREDICTION_REQUEST_FAILED';
     }

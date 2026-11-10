@@ -13,7 +13,7 @@ test('enforces the prediction budget under concurrent calls and keeps uncertain 
   const options = { method: 'POST', body: JSON.stringify({
     model: 'qwen-plus-2025-12-01', max_tokens: 160, enable_thinking: true, thinking_budget: 1200
   }) };
-  const hold = 28320;
+  const hold = 36480;
   const release = Promise.withResolvers();
   const called = Promise.withResolvers();
   let count = 0;
@@ -40,11 +40,13 @@ test('enforces the prediction budget under concurrent calls and keeps uncertain 
     const { rows } = await admin.query(
       "SELECT state, held_micros, spent_micros, request_id FROM model_invocations WHERE tenant_id=$1 ORDER BY state", [tenant]);
     assert.deepEqual(rows, [
-      { state: 'metered', held_micros: String(hold), spent_micros: '480', request_id: 'request-metered' },
+      { state: 'metered', held_micros: String(hold), spent_micros: '1680', request_id: 'request-metered' },
       { state: 'unknown', held_micros: String(hold), spent_micros: '0', request_id: null }
     ]);
     const { rows: [budget] } = await admin.query('SELECT held_micros, spent_micros FROM model_budget_days');
-    assert.deepEqual(budget, { held_micros: String(hold), spent_micros: '480' });
+    assert.deepEqual(budget, { held_micros: String(hold), spent_micros: '1680' });
+    const { rows: [tenantBudget] } = await admin.query('SELECT held_micros, spent_micros FROM model_tenant_days WHERE tenant_id=$1', [tenant]);
+    assert.deepEqual(tenantBudget, budget);
     assert.equal((await pool.query('SELECT id FROM model_invocations')).rowCount, 0);
 
     const reject = modelRequest(pool, tenant, 'paper', async () => Response.json({}, { status: 429 }));
@@ -55,6 +57,48 @@ test('enforces the prediction budget under concurrent calls and keeps uncertain 
       /INVALID_MODEL_REQUEST/);
   } finally {
     release.resolve();
+    await Promise.all([admin.end(), pool.end()]);
+  }
+});
+
+test('the corrected Plus price rejects an insufficient tenant budget and rolls back the site hold', async () => {
+  const admin = new pg.Pool({ connectionString: process.env.MIGRATION_DATABASE_URL });
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+  const keys = ['BAILIAN_WORKSPACE_ID', 'BAILIAN_DAILY_BUDGET_CENTS', 'BAILIAN_TENANT_DAILY_BUDGET_CENTS', 'BAILIAN_MODEL_LIMITS_JSON'];
+  const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  process.env.BAILIAN_WORKSPACE_ID = 'synthetic-workspace';
+  process.env.BAILIAN_DAILY_BUDGET_CENTS = '100';
+  process.env.BAILIAN_TENANT_DAILY_BUDGET_CENTS = '6';
+  delete process.env.BAILIAN_MODEL_LIMITS_JSON;
+  let calls = 0;
+  try {
+    const { rows: [{ id: tenant }] } = await admin.query(
+      "INSERT INTO accounts (email, password_hash) VALUES ('plus-pricing-budget@example.test', 'stub') RETURNING id");
+    const before = (await admin.query('SELECT day, held_micros, spent_micros FROM model_budget_days ORDER BY day')).rows;
+    const request = modelRequest(pool, tenant, 'solution', async () => {
+      calls++;
+      return Response.json({ usage: { prompt_tokens: 100, completion_tokens: 200, completion_tokens_details: { reasoning_tokens: 120 } } });
+    });
+    const endpoint = 'https://synthetic-workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions';
+    const options = { method: 'POST', body: JSON.stringify({ model: 'qwen-plus-2025-12-01', max_tokens: 3400, enable_thinking: true, thinking_budget: 1600 }) };
+    // Previous price held 35600 micro-CNY and incorrectly admitted this call; the corrected hold is 65600.
+    await assert.rejects(request(endpoint, options), /MODEL_BUDGET_LIMIT/);
+    assert.equal(calls, 0);
+    assert.equal((await admin.query('SELECT id FROM model_invocations WHERE tenant_id=$1', [tenant])).rowCount, 0);
+    assert.equal((await admin.query('SELECT tenant_id FROM model_tenant_days WHERE tenant_id=$1', [tenant])).rowCount, 0);
+    assert.deepEqual((await admin.query('SELECT day, held_micros, spent_micros FROM model_budget_days ORDER BY day')).rows, before);
+    process.env.BAILIAN_TENANT_DAILY_BUDGET_CENTS = '7';
+    await request(endpoint, options);
+    assert.equal(calls, 1);
+    assert.deepEqual((await admin.query('SELECT state, held_micros, spent_micros FROM model_invocations WHERE tenant_id=$1', [tenant])).rows,
+      [{ state: 'metered', held_micros: '65600', spent_micros: '1680' }]);
+    assert.deepEqual((await admin.query('SELECT held_micros, spent_micros FROM model_tenant_days WHERE tenant_id=$1', [tenant])).rows,
+      [{ held_micros: '0', spent_micros: '1680' }]);
+  } finally {
+    for (const key of keys) {
+      if (previous[key] === undefined) delete process.env[key];
+      else process.env[key] = previous[key];
+    }
     await Promise.all([admin.end(), pool.end()]);
   }
 });
