@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test:sites": "node --test tests/sites-worker.test.mjs",
     "build:connected": "vite build --mode connected --outDir dist/connected",
-    "test:unit": "node --test tests/mistake-retry.test.mjs tests/practice-draft.test.mjs tests/paper-study.test.mjs"
+    "test:unit": "node --test tests/mistake-retry.test.mjs tests/practice-draft.test.mjs tests/paper-study.test.mjs tests/prediction-failure.test.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

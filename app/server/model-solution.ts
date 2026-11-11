@@ -1,3 +1,4 @@
+import { modelProviderFailure, isTerminalModelFailure } from './model-provider-errors.js';
 import { knowledgeMetadata } from './knowledge.js';
 import { randomUUID } from 'node:crypto';
 import type { Pool } from 'pg';
@@ -62,7 +63,11 @@ export async function solveQuestion(stem: string, request = fetch, image?: Solut
       ]
     })
   });
-  if (!response.ok) throw new Error(response.status === 429 ? 'MODEL_RATE_LIMIT' : 'MODEL_REQUEST_FAILED');
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    throw new Error(modelProviderFailure(response.status, errorBody) ??
+      (response.status === 429 ? 'MODEL_RATE_LIMIT' : 'MODEL_REQUEST_FAILED'));
+  }
   const body = await response.json();
   const choice = body.choices?.[0];
   if (choice?.finish_reason === 'length') throw new Error('SOLUTION_OUTPUT_TRUNCATED');
@@ -152,7 +157,7 @@ export async function processNextSolution(pool: Pool, solve = solveQuestion, sto
           solution = await solve(stem, request, undefined, paperText, undefined, question.question_kind, question.input_revision > 1);
           standaloneSolution = standalone && solution.status === 'solved';
         } catch (error) {
-          if (!pdf || (error instanceof Error && ['MODEL_BUDGET_LIMIT', 'MODEL_NOT_CONFIGURED'].includes(error.message))) throw error;
+          if (!pdf || (error instanceof Error && isTerminalModelFailure(error.message))) throw error;
         }
       }
       if (!solution || (pdf && solution.status === 'insufficient_evidence')) {
@@ -175,7 +180,7 @@ export async function processNextSolution(pool: Pool, solve = solveQuestion, sto
         try {
           solution = await solve(stem, request, visual, paperText, pdf ? 'qwen3.5-flash-2026-02-23' : undefined, question.question_kind, question.input_revision > 1);
         } catch (error) {
-          if (!pdf || (error instanceof Error && ['MODEL_BUDGET_LIMIT', 'MODEL_NOT_CONFIGURED'].includes(error.message))) throw error;
+          if (!pdf || (error instanceof Error && isTerminalModelFailure(error.message))) throw error;
         }
         if (pdf && (!solution || solution.status === 'insufficient_evidence')) {
           solution = await solve(stem, request, visual, paperText, undefined, question.question_kind, question.input_revision > 1);
@@ -184,8 +189,12 @@ export async function processNextSolution(pool: Pool, solve = solveQuestion, sto
     }
   } catch (error) {
     const code = error instanceof Error ? error.message : '';
+    if (isTerminalModelFailure(code)) {
+      solution = null;
+      standaloneSolution = false;
+    }
     failure = error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name) ? 'SOLUTION_TIMEOUT' :
-      ['MODEL_BUDGET_LIMIT', 'MODEL_RATE_LIMIT', 'MODEL_NOT_CONFIGURED', 'SOLUTION_OUTPUT_TRUNCATED'].includes(code)
+      (isTerminalModelFailure(code) || ['MODEL_RATE_LIMIT', 'SOLUTION_OUTPUT_TRUNCATED'].includes(code))
         ? code : 'SOLUTION_INVALID_RESPONSE';
   }
 

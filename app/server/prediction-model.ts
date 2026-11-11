@@ -1,3 +1,4 @@
+import { modelProviderFailure, isTerminalModelFailure } from './model-provider-errors.js';
 import { setTimeout as delay } from 'node:timers/promises';
 import { knowledgeMetadata } from './knowledge.js';
 import { solutionEndpoint, stemKey } from './model-solution.js';
@@ -148,9 +149,13 @@ async function requestQuestion(endpoint: string, model: string, slot: Slot, evid
         ]
       })
     });
-    const body = await response.json();
+    const body = await response.json().catch(error => {
+      if (response.ok) throw error;
+      return null;
+    });
     recordUsage(call, response, body);
-    if (!response.ok) throw new Error(response.status === 429 ? 'PREDICTION_RATE_LIMITED' : 'PREDICTION_REQUEST_FAILED');
+    if (!response.ok) throw new Error(modelProviderFailure(response.status, body) ??
+      (response.status === 429 ? 'PREDICTION_RATE_LIMITED' : 'PREDICTION_REQUEST_FAILED'));
     call.outcome = 'invalid_output';
     call.validation = 'format';
     const choice = body.choices?.[0];
@@ -189,11 +194,11 @@ async function requestQuestion(endpoint: string, model: string, slot: Slot, evid
 
 function recordUsage(call: PredictionCall, response: Response, body: any) {
   call.httpStatus = response.status;
-  const requestId: unknown = body.request_id ?? body.id;
+  const requestId: unknown = body?.request_id ?? body?.id;
   if (typeof requestId === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(requestId)) call.requestId = requestId;
-  if (Number.isSafeInteger(body.usage?.prompt_tokens)) call.inputTokens = body.usage.prompt_tokens;
-  if (Number.isSafeInteger(body.usage?.completion_tokens)) call.outputTokens = body.usage.completion_tokens;
-  const reason = body.choices?.[0]?.finish_reason;
+  if (Number.isSafeInteger(body?.usage?.prompt_tokens)) call.inputTokens = body.usage.prompt_tokens;
+  if (Number.isSafeInteger(body?.usage?.completion_tokens)) call.outputTokens = body.usage.completion_tokens;
+  const reason = body?.choices?.[0]?.finish_reason;
   if (reason === 'stop' || reason === 'length' || reason === 'content_filter') call.finishReason = reason;
 }
 
@@ -228,9 +233,13 @@ async function verifyQuestion(endpoint: string, question: Predicted, source: Evi
         ]
       })
     });
-    const body = await response.json();
+    const body = await response.json().catch(error => {
+      if (response.ok) throw error;
+      return null;
+    });
     recordUsage(call, response, body);
-    if (!response.ok) throw new Error(response.status === 429 ? 'PREDICTION_RATE_LIMITED' : 'PREDICTION_REQUEST_FAILED');
+    if (!response.ok) throw new Error(modelProviderFailure(response.status, body) ??
+      (response.status === 429 ? 'PREDICTION_RATE_LIMITED' : 'PREDICTION_REQUEST_FAILED'));
     call.outcome = 'invalid_output';
     const choice = body.choices?.[0];
     if (choice?.finish_reason !== 'stop' || typeof choice.message?.content !== 'string') throw new Error('INVALID_PREDICTION');
@@ -268,9 +277,13 @@ async function blindSolve(endpoint: string, question: Predicted, request: typeof
           JSON.stringify({ stem: question.stem, kind: question.kind }) }]
       })
     });
-    const body = await response.json();
+    const body = await response.json().catch(error => {
+      if (response.ok) throw error;
+      return null;
+    });
     recordUsage(call, response, body);
-    if (!response.ok) throw new Error(response.status === 429 ? 'PREDICTION_RATE_LIMITED' : 'PREDICTION_REQUEST_FAILED');
+    if (!response.ok) throw new Error(modelProviderFailure(response.status, body) ??
+      (response.status === 429 ? 'PREDICTION_RATE_LIMITED' : 'PREDICTION_REQUEST_FAILED'));
     call.outcome = 'invalid_output';
     const choice = body.choices?.[0];
     if (choice?.finish_reason !== 'stop' || typeof choice.message?.content !== 'string') throw new Error('INVALID_PREDICTION');
@@ -311,12 +324,18 @@ export async function generatePrediction(evidence: Evidence[], request = fetch, 
   const approved = new Map<Slot, Predicted>();
   const errors: unknown[] = [];
   let cursor = 0;
+  let terminalFailure: unknown;
+  // Already dispatched calls may finish, but no new stage, retry or slot may start.
+  const guardedRequest: typeof fetch = async (...args) => {
+    if (terminalFailure) throw terminalFailure;
+    return request(...args);
+  };
 
   async function work() {
-    while (cursor < slots.length) {
+    while (!terminalFailure && cursor < slots.length) {
       const original = slots[cursor++]!;
       let slot = original;
-      for (let attempt = 0; attempt < retries; attempt++) {
+      for (let attempt = 0; !terminalFailure && attempt < retries; attempt++) {
         if (attempt >= 2) {
           const unused = evidence.filter(item => !plannedSources.has(item.id));
           const alternate = unused.find(item => item.kind === original.kind ||
@@ -329,12 +348,14 @@ export async function generatePrediction(evidence: Evidence[], request = fetch, 
         const source = sources.get(slot.sourceId)!;
         try {
           const generationModel = attempt % 3 === 0 ? predictionModel : backupModel;
-          const question = await requestQuestion(endpoint, generationModel, slot, source, request, record);
+          const question = await requestQuestion(endpoint, generationModel, slot, source, guardedRequest, record);
+          if (terminalFailure) throw terminalFailure;
           const key = canonicalStem(question.stem);
           if (used.some(previous => nearDuplicate(previous, key))) continue;
-          const blind = await blindSolve(endpoint, question, request, record);
+          const blind = await blindSolve(endpoint, question, guardedRequest, record);
+          if (terminalFailure) throw terminalFailure;
           const candidate = blind.supported ? (blind.correction ?? question) : blind.correction;
-          if (!candidate || !await verifyQuestion(endpoint, candidate, source, request, record)) continue;
+          if (!candidate || !await verifyQuestion(endpoint, candidate, source, guardedRequest, record)) continue;
           if (used.some(previous => nearDuplicate(previous, key))) continue;
           used.push(key);
           approved.set(original, candidate);
@@ -342,7 +363,10 @@ export async function generatePrediction(evidence: Evidence[], request = fetch, 
         } catch (error) {
           errors.push(error);
           const code = error instanceof Error ? error.message : '';
-          if (['MODEL_BUDGET_LIMIT', 'MODEL_NOT_CONFIGURED'].includes(code)) throw error;
+          if (isTerminalModelFailure(code)) {
+            terminalFailure ??= error;
+            throw terminalFailure;
+          }
           if (['MODEL_RATE_LIMIT', 'PREDICTION_RATE_LIMITED'].includes(code) && attempt + 1 < retries) {
             await delay(1000 * (attempt + 1));
           }
@@ -352,6 +376,7 @@ export async function generatePrediction(evidence: Evidence[], request = fetch, 
   }
 
   const outcomes = await Promise.allSettled(Array.from({ length: Math.min(5, slots.length) }, work));
+  if (terminalFailure) throw terminalFailure;
   const blocked = outcomes.find(outcome => outcome.status === 'rejected');
   if (blocked) throw blocked.reason;
   if (approved.size < minimum) {
