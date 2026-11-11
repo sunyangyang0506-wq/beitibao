@@ -109,8 +109,11 @@ async function storeResult(db: PoolClient, tenant: string, paperId: string, atte
   const { rows } = await db.query<SolutionSnapshot & { id: string }>(`
     SELECT q.id, q.stem, q.input_revision, q.visual_review, q.model_solution, q.solution_status
     FROM (${practiceSolutionSources}) q
-    JOIN jsonb_to_recordset($3::jsonb) AS input(id uuid, stem text, "inputRevision" integer, "visualReview" text)
-      ON q.id = input.id AND q.input_revision = coalesce(input."inputRevision", 1) AND q.stem = input.stem AND q.visual_review IS NOT DISTINCT FROM input."visualReview"
+    JOIN jsonb_to_recordset($3::jsonb) AS input(id uuid, stem text, "inputRevision" integer, "visualReview" text, kind text, reference jsonb)
+      ON q.id = input.id AND q.input_revision = coalesce(input."inputRevision", 1) AND q.stem = input.stem
+      AND q.visual_review IS NOT DISTINCT FROM input."visualReview"
+      AND (input.kind IS NULL OR q.question_kind = input.kind)
+      AND q.reference IS NOT DISTINCT FROM input.reference
     WHERE q.paper_id = $2
   `, [tenant, paperId, JSON.stringify(attempt.questions)]);
   const snapshots = Object.fromEntries(rows.map(({ id, ...snapshot }) => [id, snapshot]));
