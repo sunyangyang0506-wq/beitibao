@@ -36,3 +36,14 @@ export async function predictionUnlocked(db: PoolClient, tenant: string, courseI
   `, [tenant, courseId]);
   return progress?.unlocked ?? false;
 }
+
+export async function predictionPaperLocked(db: PoolClient, tenant: string, paperId: string) {
+  const result = await db.query(`
+    SELECT 1 FROM papers p WHERE p.tenant_id = $1 AND p.id = $2 AND p.is_prediction AND NOT EXISTS (
+      SELECT 1 FROM course_learning_progress progress
+      WHERE (progress.tenant_id,progress.course_id) = (p.tenant_id,p.course_id)
+        AND progress.total_papers > 0 AND progress.completed_papers = progress.total_papers
+    )
+  `, [tenant, paperId]);
+  return Boolean(result.rowCount);
+}

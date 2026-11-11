@@ -4,6 +4,7 @@ import type { Pool, PoolClient } from 'pg';
 import type { QuestionReference } from './question-reference.js';
 import { gradePracticeQuestion, refreshPracticeResults, samePracticeInput, practiceSolutionSources, type SolutionSnapshot, type Grades, type CurrentPracticeSolution } from './practice-results.js';
 import { asTenant, transaction } from './db.js';
+import { predictionPaperLocked } from './prediction-access.js';
 
 type DraftState = { marked: string[]; position: string | null };
 
@@ -19,78 +20,68 @@ type Attempt = {
 };
 type CurrentSolution = CurrentPracticeSolution & { correction: unknown; stem_correction: string | null };
 
-async function presentAttempt(attempt: Attempt, pool: Pool, tenant: string, paperId: string, reply: FastifyReply) {
-  const solutions = new Map<string, CurrentSolution>();
-  const corrections = new Map<string, string>();
-  const versions = new Map<string, number>();
-  let snapshots: Record<string, SolutionSnapshot> | null = null;
-  let grades: Grades | undefined;
-  if (attempt.submittedAt) {
-    const key = [tenant, paperId];
-    const read = await asTenant(pool, tenant, async db => {
-      await db.query('SELECT 1 FROM papers WHERE tenant_id=$1 AND id=$2 FOR SHARE', key);
-      const { rows: [currentAttempt] } = await db.query<{ submitted_at: string | null }>('SELECT submitted_at FROM practice_attempts WHERE tenant_id=$1 AND paper_id=$2', key);
-      if (!currentAttempt) return { blocked: 'PRACTICE_NOT_FOUND' as const, status: 404 };
-      if (!currentAttempt.submitted_at) return { blocked: 'CLOSED_BOOK_ACTIVE' as const, status: 409 };
-      await refreshPracticeResults(db, tenant, { paperId });
-      const { rows: [saved] } = await db.query<{ graded: Grades; solution_snapshots: Record<string, SolutionSnapshot> | null }>(
-        `SELECT r.graded,r.solution_snapshots FROM practice_results r JOIN practice_attempts a USING (tenant_id,paper_id)
-         WHERE r.tenant_id=$1 AND r.paper_id=$2 AND a.attempt_id=$3 FOR UPDATE OF r`, [...key, attempt.attemptId]);
-      const { rows } = await db.query<CurrentSolution>(`
-      SELECT q.id, q.stem, q.input_revision, q.visual_review, q.question_kind, q.reference, q.model_solution, q.solution_status, r.correction, r.stem_correction FROM paper_questions q
-      LEFT JOIN question_recall r ON (r.tenant_id, r.question_id) = (q.tenant_id, q.id)
-      WHERE q.tenant_id = $1 AND q.paper_id = $2
-      `, key);
-      const archive = !saved ? (await db.query<{ graded: Grades; solution_snapshots: Record<string, SolutionSnapshot> | null }>(
-        'SELECT graded,solution_snapshots FROM practice_history WHERE tenant_id=$1 AND paper_id=$2 AND attempt_id=$3', [...key, attempt.attemptId])).rows[0] : null;
-      const result = saved ?? archive;
-      const snapshots = result?.solution_snapshots ?? null;
-      return { grades: result?.graded, rows, snapshots };
-    });
-    if ('blocked' in read) return reply.code(read.status ?? 409).send({ code: read.blocked });
-    grades = read.grades;
-    snapshots = read.snapshots;
-    for (const row of read.rows) {
-      solutions.set(row.id, row);
-      versions.set(row.id, row.input_revision ?? 1);
-      if (row.stem_correction) corrections.set(row.id, row.stem_correction);
-    }
-  } else {
-    const { rows } = await asTenant(pool, tenant, db => db.query<{ id: string; stem: string; input_revision: number; stem_correction: string | null }>(`
-      SELECT q.id, q.stem, q.input_revision, r.stem_correction FROM paper_questions q
-      LEFT JOIN question_recall r ON (r.tenant_id, r.question_id) = (q.tenant_id, q.id)
-      WHERE q.tenant_id = $1 AND q.paper_id = $2
-    `, [tenant, paperId]));
-    for (const row of rows) {
-      versions.set(row.id, row.input_revision);
-      if (row.stem_correction) corrections.set(row.id, row.stem_correction);
-    }
-  }
+async function presentDraft(attempt: Attempt, db: PoolClient, tenant: string, paperId: string) {
+  const { rows } = await db.query<{ id: string; input_revision: number; stem_correction: string | null }>(`
+    SELECT q.id, q.input_revision, r.stem_correction FROM paper_questions q
+    LEFT JOIN question_recall r ON (r.tenant_id, r.question_id) = (q.tenant_id, q.id)
+    WHERE q.tenant_id = $1 AND q.paper_id = $2
+  `, [tenant, paperId]);
+  const current = new Map(rows.map(row => [row.id, row]));
   const questions = attempt.questions.map(({ reference, visualReview, ...question }) => {
-    const stemCorrection = corrections.get(question.id);
-    const inputChanged = (question.inputRevision ?? 1) !== versions.get(question.id)
-      || Boolean(stemCorrection && stemCorrection !== question.stem);
-    const display = { ...question, inputChanged };
-    if (!attempt.submittedAt) return display;
+    const row = current.get(question.id);
+    const inputChanged = (question.inputRevision ?? 1) !== row?.input_revision ||
+      Boolean(row?.stem_correction && row.stem_correction !== question.stem);
+    return { ...question, inputChanged };
+  });
+  return { ...attempt, questions, inputChanged: questions.some(question => question.inputChanged) };
+}
+
+async function presentAttempt(attempt: Attempt, pool: Pool, tenant: string, paperId: string, reply: FastifyReply) {
+  if (!attempt.submittedAt) return asTenant(pool, tenant, db => presentDraft(attempt, db, tenant, paperId));
+  const key = [tenant, paperId];
+  const read = await asTenant(pool, tenant, async db => {
+    await db.query('SELECT 1 FROM papers WHERE tenant_id=$1 AND id=$2 FOR SHARE', key);
+    const { rows: [currentAttempt] } = await db.query<{ submitted_at: string | null }>('SELECT submitted_at FROM practice_attempts WHERE tenant_id=$1 AND paper_id=$2', key);
+    if (!currentAttempt) return { blocked: 'PRACTICE_NOT_FOUND' as const, status: 404 };
+    if (!currentAttempt.submitted_at) return { blocked: 'CLOSED_BOOK_ACTIVE' as const, status: 409 };
+    await refreshPracticeResults(db, tenant, { paperId });
+    const { rows: [saved] } = await db.query<{ graded: Grades; solution_snapshots: Record<string, SolutionSnapshot> | null }>(
+      `SELECT r.graded,r.solution_snapshots FROM practice_results r JOIN practice_attempts a USING (tenant_id,paper_id)
+       WHERE r.tenant_id=$1 AND r.paper_id=$2 AND a.attempt_id=$3 FOR UPDATE OF r`, [...key, attempt.attemptId]);
+    const { rows } = await db.query<CurrentSolution>(`
+    SELECT q.id, q.stem, q.input_revision, q.visual_review, q.question_kind, q.reference, q.model_solution, q.solution_status, r.correction, r.stem_correction FROM paper_questions q
+    LEFT JOIN question_recall r ON (r.tenant_id, r.question_id) = (q.tenant_id, q.id)
+    WHERE q.tenant_id = $1 AND q.paper_id = $2
+    `, key);
+    const archive = !saved ? (await db.query<{ graded: Grades; solution_snapshots: Record<string, SolutionSnapshot> | null }>(
+      'SELECT graded,solution_snapshots FROM practice_history WHERE tenant_id=$1 AND paper_id=$2 AND attempt_id=$3', [...key, attempt.attemptId])).rows[0] : null;
+    const result = saved ?? archive;
+    const snapshots = result?.solution_snapshots ?? null;
+    return { grades: result?.graded, rows, snapshots };
+  });
+  if ('blocked' in read) return reply.code(read.status ?? 409).send({ code: read.blocked });
+  const { grades, snapshots } = read;
+  const solutions = new Map(read.rows.map(row => [row.id, row]));
+
+  const questions = attempt.questions.map(({ reference, visualReview, ...question }) => {
     const current = solutions.get(question.id);
+    const inputChanged = (question.inputRevision ?? 1) !== (current && (current.input_revision ?? 1))
+      || Boolean(current?.stem_correction && current.stem_correction !== question.stem);
     const referenceChanged = JSON.stringify(reference ?? null) !== JSON.stringify(current?.reference ?? null);
     const snapshot = snapshots?.[question.id];
     const matchesInput = snapshot && current && snapshot.stem === current.stem && snapshot.visual_review === current.visual_review
       && samePracticeInput({ ...question, reference, visualReview }, current);
     const savedGrade = grades?.[question.id];
     const result = savedGrade && savedGrade !== 'needs_review' ? savedGrade : gradePracticeQuestion(attempt, { ...question, reference }, snapshot);
-    return { ...display, reference: reference ?? null, referenceChanged,
+    return { ...question, inputChanged, reference: reference ?? null, referenceChanged,
       modelSolution: snapshot?.model_solution ?? null, correction: current?.correction ?? null,
       solutionStatus: snapshot?.model_solution ? snapshot.solution_status : matchesInput ? current.solution_status : null,
       solutionRetryable: Boolean(matchesInput && current.solution_status === 'failed'),
       legacySolutionUnavailable: snapshots === null,
       result };
   });
-  return { ...attempt, questions, inputChanged: questions.some(question => question.inputChanged), ...(attempt.submittedAt && {
-    knowledgeNetwork: buildKnowledgeNetwork(questions.map(question => ({
-      modelSolution: 'modelSolution' in question ? question.modelSolution : null
-    })))
-  }) };
+  const knowledgeNetwork = buildKnowledgeNetwork(questions.map(question => ({ modelSolution: question.modelSolution })));
+  return { ...attempt, questions, inputChanged: questions.some(question => question.inputChanged), knowledgeNetwork };
 }
 const fields = 'attempt_id AS "attemptId", title, questions, answers, revision, draft_state AS "draft", submitted_at AS "submittedAt", deadline_at AS "deadlineAt"';
 const params = { type: 'object', required: ['paperId'], properties: { paperId: { type: 'string', format: 'uuid' } } };
@@ -316,12 +307,13 @@ export function registerPracticeRoutes(app: FastifyInstance, pool: Pool, prefix:
       const key = [tenant, request.params.paperId];
       const { revision, answers, changes, draft, submit } = request.body;
       const result = await asTenant(pool, tenant, async db => {
+        if (await predictionPaperLocked(db, tenant, request.params.paperId)) return { status: 403, code: 'PREDICTION_LOCKED' };
         const { rows: [attempt] } = await db.query<Attempt>(`
           SELECT ${fields} FROM practice_attempts WHERE tenant_id = $1 AND paper_id = $2 FOR UPDATE
         `, key);
         if (!attempt) return { status: 404, code: 'PRACTICE_NOT_FOUND' };
         if (attempt.submittedAt) return submit && revision === attempt.revision - 1 ? { attempt } : { status: 409, code: 'PRACTICE_SUBMITTED' };
-        const expired = await settleExpiredPaper(db, tenant, request.params.paperId);
+        const expired = attempt.deadlineAt && await settleExpiredPaper(db, tenant, request.params.paperId);
         if (expired) return { attempt: expired };
         if (revision !== attempt.revision) return { status: 409, code: 'PRACTICE_CONFLICT' };
         const ids = new Set(attempt.questions.map(question => question.id));
@@ -338,9 +330,15 @@ export function registerPracticeRoutes(app: FastifyInstance, pool: Pool, prefix:
               WHEN $4 THEN statement_timestamp() ELSE NULL END
           WHERE tenant_id = $1 AND paper_id = $2 RETURNING ${fields}
         `, [...key, JSON.stringify(answers ?? { ...attempt.answers, ...changes }), submit, JSON.stringify(draft ?? attempt.draft)]);
-        if (rows[0]?.submittedAt) await storeResult(db, tenant, request.params.paperId, rows[0]);
-        return { attempt: rows[0] };
+        const updated = rows[0]!;
+        if (updated.submittedAt) {
+          await storeResult(db, tenant, request.params.paperId, updated);
+          return { attempt: updated };
+        }
+        return { draft: await presentDraft(updated, db, tenant, request.params.paperId) };
       });
-      return 'code' in result ? reply.code(result.status!).send({ code: result.code }) : presentAttempt(result.attempt!, pool, tenant, request.params.paperId, reply);
+      if ('code' in result) return reply.code(result.status!).send({ code: result.code });
+      if ('draft' in result) return result.draft;
+      return presentAttempt(result.attempt!, pool, tenant, request.params.paperId, reply);
     });
 }

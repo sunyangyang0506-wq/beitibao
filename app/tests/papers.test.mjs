@@ -426,6 +426,9 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.equal(relocked.sourcesConfirmed, false);
     assert.equal(relocked.prediction, null);
     assert.equal((await request(owner, 'GET', predictionPractice)).json().code, 'PREDICTION_LOCKED');
+    assert.equal((await request(owner, 'POST', predictionPractice + '/save', {
+      revision: 0, changes: {}, submit: false
+    })).json().code, 'PREDICTION_LOCKED');
     assert.ok(!(await request(owner, 'GET', '/mistakes')).json().mistakes.some(item => item.id === choiceQuestion.id));
     const imagePath = '/papers/' + imageUpload.json().paper.id;
     const recognize = async (_bytes, mediaType) => {

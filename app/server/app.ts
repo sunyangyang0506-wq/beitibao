@@ -16,6 +16,7 @@ import { recoverySecret, registerPasswordRecovery } from './password-recovery.js
 import { registerSchoolIdentity } from './school-identity.js';
 import type { PrivatePapers } from './paper-uploads.js';
 import { asTenant } from './db.js';
+import { predictionPaperLocked } from './prediction-access.js';
 
 const cookieName = 'beitibao_session';
 const prefix = '/api/v1';
@@ -132,15 +133,12 @@ export async function createApp({ pool, origin, secureCookies = true, exposeOpen
 
     protectedRoutes.addHook('preHandler', async (request, reply) => {
       const { paperId } = (request.params ?? {}) as { paperId?: string };
-      if (!paperId) return;
-      const locked = await asTenant(pool, request.studySession!.id, db => db.query(`
-        SELECT 1 FROM papers p WHERE p.tenant_id = $1 AND p.id = $2 AND p.is_prediction AND NOT EXISTS (
-          SELECT 1 FROM course_learning_progress progress
-          WHERE (progress.tenant_id,progress.course_id) = (p.tenant_id,p.course_id)
-            AND progress.total_papers > 0 AND progress.completed_papers = progress.total_papers
-        )
-      `, [request.studySession!.id, paperId]));
-      if (locked.rowCount) return reply.code(403).send({ code: 'PREDICTION_LOCKED' });
+      // Saving a draft checks the same rule in its write transaction.
+      if (!paperId || request.routeOptions.url === prefix + '/papers/:paperId/practice/save') return;
+      const tenant = request.studySession!.id;
+      if (await asTenant(pool, tenant, db => predictionPaperLocked(db, tenant, paperId))) {
+        return reply.code(403).send({ code: 'PREDICTION_LOCKED' });
+      }
     });
 
     const security = [{ session: [] }];
