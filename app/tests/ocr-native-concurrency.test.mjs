@@ -57,8 +57,8 @@ test('native OCR retry/publication concurrency and tenant isolation', { timeout:
     for (const [id, media] of [[image, 'image/png'], [pdf, 'application/pdf']]) {
       await admin.query(`INSERT INTO papers(tenant_id,id,course_id,title,fingerprint,pdf,status,media_type,
         object_key,object_version,object_bytes,model_allowed,failure,created_at)
-        VALUES ($1,$2,$3,'Synthetic OCR concurrency',$2::text,'','review',$4,$5,'synthetic-version',1,true,
-          'MODEL_PAYMENT_REQUIRED','2099-01-01')`, [owner, id, course, media, 'synthetic/' + id]);
+        VALUES ($1,$2,$3,'Synthetic OCR concurrency',$6,'','review',$4,$5,'synthetic-version',1,true,
+          'MODEL_PAYMENT_REQUIRED','2099-01-01')`, [owner, id, course, media, 'synthetic/' + id, 'fingerprint-' + id]);
     }
     await admin.query(`INSERT INTO paper_page_recognition(tenant_id,paper_id,page_number,status,recognition)
       VALUES ($1,$2,1,'review','{"stems":["1. Explain a synthetic stack."]}'),($1,$2,2,'review','{"stems":["2. Explain a synthetic queue."]}')`, [owner, pdf]);
@@ -134,6 +134,26 @@ test('native OCR retry/publication concurrency and tenant isolation', { timeout:
         (tenant_id,paper_id,page_number) VALUES ($1,$2,3)`, [owner, pdf])), error => error.code === '42501' && /row-level security/i.test(error.message));
       const { rows: [saved] } = await admin.query('SELECT status,failure FROM papers WHERE tenant_id=$1 AND id=$2', [owner, image]);
       assert.deepEqual(saved, { status: 'review', failure: 'MODEL_PAYMENT_REQUIRED' });
+    });
+
+    await t.test('trusted page worker respects explicit tenant/paper pairing; recovery can publish after repair', async () => {
+      // The queue worker is intentionally cross-tenant (USING true); unlike the
+      // API role it must not be presented as an end-user RLS boundary.
+      await asTenant(page, other, async db => {
+        assert.equal((await db.query('SELECT 1 FROM papers WHERE tenant_id=$1 AND id=$2', [owner, pdf])).rowCount, 1);
+        assert.equal(await publishCompletedPages(db, other, pdf, false, false), false);
+      });
+      assert.equal((await admin.query('SELECT 1 FROM paper_questions WHERE tenant_id=$1 AND paper_id=$2', [owner, pdf])).rowCount, 0);
+      await admin.query(`UPDATE paper_page_recognition SET status='review',failure=NULL,reviewed_at=NULL,
+        recognition=jsonb_build_object('stems',jsonb_build_array('Synthetic repaired question ' || page_number))
+        WHERE tenant_id=$1 AND paper_id=$2`, [owner, pdf]);
+      // Positive control: the gate does not just return false for every paper.
+      assert.equal(await asTenant(page, owner, db => publishCompletedPages(db, owner, pdf, false, false)), true);
+      assert.equal(await asTenant(api, owner, db => publishCompletedPages(db, owner, pdf, false, false)), true);
+      const { rows } = await admin.query('SELECT stem,solution_status FROM paper_questions WHERE tenant_id=$1 AND paper_id=$2 ORDER BY page_number', [owner, pdf]);
+      assert.deepEqual(rows.map(row => row.stem), ['Synthetic repaired question 1', 'Synthetic repaired question 2']);
+      assert.ok(rows.every(row => row.solution_status === null));
+      assert.equal((await admin.query('SELECT 1 FROM paper_page_recognition WHERE tenant_id=$1 AND paper_id=$2 AND reviewed_at IS NOT NULL', [owner, pdf])).rowCount, 2);
     });
   } finally {
     // These fixtures exist only in the disposable synthetic CI database.
