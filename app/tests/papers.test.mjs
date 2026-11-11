@@ -224,6 +224,9 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
   try {
     const owner = await register('paper-owner@example.test');
     const other = await register('paper-other@example.test');
+    const { rows: [{ id: ownerId }] } = await admin.query("SELECT id FROM accounts WHERE email = 'paper-owner@example.test'");
+    const { rows: [{ id: otherId }] } = await admin.query("SELECT id FROM accounts WHERE email = 'paper-other@example.test'");
+    const ownerJob = id => ({ tenant: ownerId, id });
     const course = await request(owner, 'POST', '/courses', { name: '数据结构', term: '2026 秋' });
     assert.equal(course.statusCode, 201);
     const coursePath = '/courses/' + course.json().course.id + '/papers';
@@ -242,8 +245,8 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
 
     const path = '/papers/' + paper.id;
     assert.equal((await request(owner, 'GET', path + '/pages/1')).statusCode, 404);
-    assert.equal(await processNextPaper(worker), true);
-    assert.equal(await processNextPaper(worker), false);
+    assert.equal(await processNextPaper(worker, undefined, undefined, undefined, ownerJob(paper.id)), true);
+    assert.equal(await processNextPaper(worker, undefined, undefined, undefined, ownerJob(paper.id)), false);
     const review = (await request(owner, 'GET', path)).json();
     assert.equal(review.paper.status, 'review');
     assert.match(review.paper.pages[0], /stack and a queue/);
@@ -262,9 +265,12 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.equal(confirmed.statusCode, 201);
     assert.equal((await request(owner, 'POST', path + '/questions', question)).json().reused, true);
     assert.deepEqual((await request(owner, 'GET', path)).json().questions, [{ ...question, id: confirmed.json().id, inputRevision: 1, kind: 'other' }]);
-    assert.equal((await request(owner, 'GET', '/progress')).json().courses[0].totalPapers, 1);
+    const beforePractice = (await request(owner, 'GET', '/progress')).json().courses[0];
+    assert.equal(beforePractice.totalPapers, 1);
+    assert.equal(beforePractice.draftPaperId, null);
 
-    assert.equal(await processNextSolution(worker, async () => { throw new Error('unexpected model call'); }), false);
+    const questionJob = ownerJob(confirmed.json().id);
+    assert.equal(await processNextSolution(worker, async () => assert.fail('unexpected model call'), undefined, questionJob), false);
     const practicePath = path + '/practice';
     const questionPath = path + '/questions/' + confirmed.json().id;
     const correction = { answer: '我的核对答案', explanation: '我的解析' };
@@ -286,6 +292,7 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     const resumed = (await request(owner, 'GET', practicePath)).json();
     assert.deepEqual(resumed.answers, answers);
     assert.deepEqual(resumed.draft, draftState);
+    assert.equal((await request(owner, 'GET', '/progress')).json().courses[0].draftPaperId, paper.id);
     const submission = { revision: resumed.revision, answers, submit: true };
     const submissions = await Promise.all(Array.from({ length: 2 }, () =>
       request(owner, 'POST', practicePath + '/save', submission)));
@@ -293,11 +300,12 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.equal(submissions[0].json().questions[0].modelSolution, null);
     assert.equal(submissions[0].json().questions[0].result, 'needs_review');
     assert.deepEqual(submissions[0].json(), submissions[1].json());
+    assert.equal((await request(owner, 'GET', '/progress')).json().courses[0].draftPaperId, null);
     const solvedAnswer = '栈后进先出，队列先进先出。';
     assert.equal(await processNextSolution(worker, async stem => {
       assert.equal(stem, question.stem);
       return { model: 'test', promptVersion: 'test', status: 'solved', answer: solvedAnswer, explanation: '按出队顺序比较。', knowledgePoints: ['栈', '队列'], designLogic: '对比存取顺序。' };
-    }), true);
+    }, undefined, questionJob), true);
     const completedAnalysis = (await request(owner, 'GET', practicePath)).json();
     assert.equal(completedAnalysis.questions[0].modelSolution.answer, solvedAnswer);
     assert.equal(completedAnalysis.questions[0].result, 'correct');
@@ -318,7 +326,9 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.equal((await request(owner, 'GET', path + '?includeAnalysis=true')).json().questions[0].modelSolution.answer, '更新后的题库答案');
 
     const predictionPath = '/courses/' + course.json().course.id + '/prediction';
-    assert.equal((await request(other, 'POST', predictionPath, {})).statusCode, 409);
+    assert.equal((await request(other, 'POST', predictionPath, {})).statusCode, 404);
+    assert.equal((await request(owner, 'POST', predictionPath, {})).json().code, 'PREDICTION_SOURCES_UNCONFIRMED');
+    assert.equal((await request(owner, 'POST', predictionPath + '/confirm-sources', { paperIds: [paper.id] })).statusCode, 200);
     const jobs = await Promise.all(Array.from({ length: 2 }, () => request(owner, 'POST', predictionPath, {})));
     assert.equal(jobs[0].json().id, jobs[1].json().id);
     const predictionStems = [
@@ -335,7 +345,7 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     }, {
       stem: predictionStems[2], kind: 'calculation', answer: '$2$',
       explanation: '三次压入后弹出一个元素。', sourceIds: [evidence[0].id], rationale: '考察栈的操作'
-    }]), true);
+    }], ownerJob(jobs[0].json().id)), true);
     const preview = (await request(owner, 'GET', predictionPath)).json();
     const predicted = preview.prediction;
     assert.equal(predicted.status, 'ready');
@@ -349,15 +359,15 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.ok(predictionAttempt.deadlineAt);
     const { rows: [scheduled] } = await admin.query('SELECT id, state FROM practice_deadline_outbox WHERE paper_id=$1', [predicted.paperId]);
     assert.equal(scheduled.state, 'pending');
-    assert.equal(await dispatchPracticeDeadline(queue, async () => { throw new Error('simulated SMQ failure'); }), true);
+    assert.equal(await dispatchPracticeDeadline(queue, async () => { throw new Error('simulated SMQ failure'); }, scheduled.id), true);
     assert.equal((await admin.query('SELECT attempts FROM practice_deadline_outbox WHERE id=$1', [scheduled.id])).rows[0].attempts, 1);
-    assert.equal(await dispatchPracticeDeadline(queue, async () => assert.fail('backoff skipped')), false);
+    assert.equal(await dispatchPracticeDeadline(queue, async () => assert.fail('backoff skipped'), scheduled.id), false);
     await admin.query('UPDATE practice_deadline_outbox SET next_attempt_at = now() WHERE id=$1', [scheduled.id]);
     const deliveries = [];
     const dispatched = await Promise.all(Array.from({ length: 2 }, () => dispatchPracticeDeadline(queue, async (event, delay) => {
       assert.ok(delay > 0 && delay <= 1800);
       deliveries.push(event);
-    })));
+    }, scheduled.id)));
     assert.deepEqual(dispatched.sort(), [false, true]);
     assert.deepEqual(deliveries, [{ version: 1, eventId: scheduled.id }]);
     assert.equal(await consumePracticeDeadline(queue, scheduled.id), false);
@@ -383,12 +393,27 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.equal(retry.json().result, 'correct');
     assert.equal((await request(owner, 'GET', '/progress')).json().courses[0].totalPapers, 1);
     await request(owner, 'POST', questionPath + '/kind', { kind: 'short_answer' });
+    assert.equal((await request(owner, 'GET', predictionPath)).json().locked, true);
+    // The original question changed from other to short_answer above. Its old
+    // attempt must not count as current coverage until the new input is practised.
+    const beforeKindRetake = (await request(owner, 'GET', '/progress')).json().courses.find(item => item.id === course.json().course.id);
+    const kindRetakeResponse = await request(owner, 'POST', practicePath, {});
+    assert.equal(kindRetakeResponse.statusCode, 200, kindRetakeResponse.body);
+    const kindRetake = kindRetakeResponse.json();
+    assert.notEqual(kindRetake.attemptId, attempt.attemptId);
+    assert.equal(kindRetake.questions[0].kind, 'short_answer');
+    const kindSubmission = await request(owner, 'POST', practicePath + '/save', {
+      revision: kindRetake.revision, answers, submit: true
+    });
+    assert.equal(kindSubmission.statusCode, 200, kindSubmission.body);
+    const afterKindRetake = (await request(owner, 'GET', '/progress')).json().courses.find(item => item.id === course.json().course.id);
+    assert.equal(afterKindRetake.completedPapers, beforeKindRetake.completedPapers + 1);
     assert.equal((await request(owner, 'GET', predictionPath)).json().prediction.status, 'superseded');
-    await request(owner, 'POST', predictionPath, {});
+    const newJob = (await request(owner, 'POST', predictionPath, {})).json();
     assert.equal(await processNextPrediction(worker, async evidence => [{
       stem: '如何选择结构以保留服务请求的到达顺序？', answer: '使用队列。',
       explanation: '队列按照入队顺序处理请求。', sourceIds: [evidence[0].id], rationale: '用调度场景核对队列性质。'
-    }]), true);
+    }], ownerJob(newJob.id)), true);
     const regenerated = (await request(owner, 'GET', predictionPath)).json();
     assert.notEqual(regenerated.prediction.paperId, predicted.paperId);
     assert.equal(regenerated.history[0].paperId, predicted.paperId);
@@ -396,13 +421,19 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
 
     const imageUpload = await request(owner, 'POST', coursePath + '?title=Image', image.rawPayload, 'image/png');
     assert.equal(imageUpload.statusCode, 202);
+    const relocked = (await request(owner, 'GET', predictionPath)).json();
+    assert.equal(relocked.locked, true);
+    assert.equal(relocked.sourcesConfirmed, false);
+    assert.equal(relocked.prediction, null);
+    assert.equal((await request(owner, 'GET', predictionPractice)).json().code, 'PREDICTION_LOCKED');
+    assert.ok(!(await request(owner, 'GET', '/mistakes')).json().mistakes.some(item => item.id === choiceQuestion.id));
     const imagePath = '/papers/' + imageUpload.json().paper.id;
     const recognize = async (_bytes, mediaType) => {
       assert.equal(mediaType, 'image/png');
       return { model: 'stub', promptVersion: 'test-v1', stems: ['OCR错字', '正确题干', '误识别'],
         figures: [[{ box: [100, 100, 500, 500], initial: null, reread: null, status: 'needs_review', reason: 'conflict' }], [], []] };
     };
-    assert.equal(await processNextPaper(worker, recognize), true);
+    assert.equal(await processNextPaper(worker, recognize, undefined, undefined, ownerJob(imageUpload.json().paper.id)), true);
     const candidate = await request(owner, 'GET', imagePath);
     assert.equal(candidate.json().paper.recognition.stems.length, 3);
     assert.equal(candidate.json().questions.length, 0);
@@ -431,13 +462,14 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     const reviewedImage = (await request(owner, 'GET', imagePath)).json();
     assert.equal(reviewedImage.questions.length, 2);
     assert.equal(reviewedImage.reviews[0].reviewedStem, '修订题干');
-    const recallQuestion = imagePath + '/questions/' + reviewedImage.questions[0].id;
+    const recallJob = ownerJob(reviewedImage.questions[0].id);
+    const recallQuestion = imagePath + '/questions/' + recallJob.id;
     assert.equal((await request(owner, 'POST', recallQuestion + '/kind', { kind: 'calculation' })).statusCode, 200);
     assert.equal((await request(owner, 'POST', imagePath + '/recall', { kind: 'calculation' })).json().queued, 1);
     assert.equal((await request(owner, 'POST', imagePath + '/recall', { kind: 'calculation' })).json().queued, 0);
     assert.equal(await processNextSolution(worker, async () => ({
       model: 'test', promptVersion: 'test', status: 'solved', answer: '42', explanation: '测试解析'
-    })), true);
+    }), undefined, recallJob), true);
     assert.equal((await request(other, 'POST', recallQuestion + '/reveal', {})).statusCode, 404);
     assert.equal((await request(owner, 'POST', recallQuestion + '/reveal', {})).json().modelSolution.answer, '42');
     assert.equal((await request(owner, 'POST', recallQuestion + '/correction', correction)).statusCode, 200);
@@ -450,7 +482,7 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.ok((await request(owner, 'GET', '/mistakes')).json().mistakes.some(item =>
       item.id === reviewedImage.questions[0].id && item.mode === 'recall' && item.kind === 'calculation' && /^\d{4}-\d{2}-\d{2}$/.test(item.day)));
     assert.equal((await request(owner, 'POST', recallQuestion + '/assessment', { rating: 'mastered' })).json().selfRating, 'mastered');
-    assert.equal(await processNextSolution(worker, async () => { throw new Error('unexpected model call'); }), false);
+    assert.equal(await processNextSolution(worker, async () => assert.fail('unexpected model call'), undefined, recallJob), false);
     const feedback = await admin.query(
       'SELECT original_stem, reviewed_stem, model, prompt_version FROM recognition_feedback WHERE paper_id = $1 AND candidate_index = 0',
       [imageUpload.json().paper.id]
@@ -467,11 +499,11 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
       return [{ stem: question.stem, model: 'test', promptVersion: 'paper-test',
         status: 'solved', answer: '共享模型答案', explanation: '同卷缓存' }];
     };
-    assert.equal(await processNextPaper(worker, undefined, solvePaper), true);
+    assert.equal(await processNextPaper(worker, undefined, solvePaper, undefined, ownerJob(firstShared.json().paper.id)), true);
     const secondShared = await request(other, 'POST',
       '/courses/' + otherCourse.json().course.id + '/papers?title=Shared&school=example%20university', pdf);
     assert.equal(secondShared.json().modelReused, false);
-    assert.equal(await processNextPaper(worker, undefined, solvePaper), true);
+    assert.equal(await processNextPaper(worker, undefined, solvePaper, undefined, { tenant: otherId, id: secondShared.json().paper.id }), true);
     assert.equal(modelCalls, 2);
     assert.equal((await request(owner, 'GET', '/papers/' + secondShared.json().paper.id)).statusCode, 404);
 
@@ -479,25 +511,27 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     const sameTenant = await request(owner, 'POST',
       '/courses/' + anotherTerm.json().course.id + '/papers?title=Shared&school=example%20university', pdf);
     assert.equal(sameTenant.json().modelReused, true);
-    assert.equal(await processNextPaper(worker, undefined, solvePaper), true);
+    assert.equal(await processNextPaper(worker, undefined, solvePaper, undefined, ownerJob(sameTenant.json().paper.id)), true);
     assert.equal(modelCalls, 2);
     const samePath = '/papers/' + sameTenant.json().paper.id;
     const sameQuestion = await request(owner, 'POST', samePath + '/questions', question);
     const sameReveal = samePath + '/questions/' + sameQuestion.json().id + '/reveal';
     await request(owner, 'POST', sameReveal, {});
-    assert.equal(await processNextSolution(worker, async () => { throw new Error('unexpected per-question call'); }), true);
+    assert.equal(await processNextSolution(worker, async () => assert.fail('unexpected per-question call'),
+      undefined, ownerJob(sameQuestion.json().id)), true);
     assert.equal((await request(owner, 'POST', sameReveal, {})).json().modelSolution.answer, '共享模型答案');
 
     const malformed = await request(owner, 'POST', uploadPath, Buffer.from('%PDF-1.7\ninvalid'));
     assert.equal(malformed.statusCode, 202);
-    assert.equal(await processNextPaper(worker), true);
+    assert.equal(await processNextPaper(worker, undefined, undefined, undefined, ownerJob(malformed.json().paper.id)), true);
     const failed = await request(owner, 'GET', '/papers/' + malformed.json().paper.id);
     assert.equal(failed.json().paper.status, 'failed');
 
     const mixedUpload = await request(owner, 'POST', uploadPath + '&recognizeScans=true', samplePaper(true));
     assert.equal(mixedUpload.statusCode, 202);
-    assert.equal(await processNextPaper(worker), true);
-    const mixed = '/papers/' + mixedUpload.json().paper.id;
+    assert.equal(await processNextPaper(worker, undefined, undefined, undefined, ownerJob(mixedUpload.json().paper.id)), true);
+    const mixedJob = ownerJob(mixedUpload.json().paper.id);
+    const mixed = '/papers/' + mixedJob.id;
     const libraryStatus = async () => (await request(owner, 'GET', coursePath)).json().papers
       .find(item => item.id === mixedUpload.json().paper.id).libraryStatus;
     assert.equal(await libraryStatus(), 'recognizing');
@@ -515,7 +549,7 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.deepEqual((await request(owner, 'GET', mixed)).json().questions[0].sourcePages, [1, 2]);
     assert.equal((await request(owner, 'POST', mixed + '/practice', {})).json().code, 'PAGE_REVIEW_REQUIRED');
     assert.equal((await request(other, 'POST', mixed + '/pages/2/recognition', {})).statusCode, 404);
-    assert.equal(await processNextPageRecognition(worker, async () => { throw new Error('OCR_NOT_CONFIGURED'); }), true);
+    assert.equal(await processNextPageRecognition(worker, async () => { throw new Error('OCR_NOT_CONFIGURED'); }, undefined, { ...mixedJob, page: 2 }), true);
     assert.equal((await request(owner, 'GET', mixed)).json().pageReviews[0].failure, 'OCR_NOT_CONFIGURED');
     assert.equal(await libraryStatus(), 'failed');
     assert.equal((await request(owner, 'POST', mixed + '/pages/2/recognition', {})).statusCode, 202);
@@ -524,8 +558,8 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
       assert.equal(bytes.readUInt32BE(20), 2400);
       return { model: 'test', promptVersion: 'test', stems: ['Explain the diagram.'],
         figures: [[{ box: [10, 10, 950, 950], status: 'needs_review', reason: 'conflict', initial: null, reread: null }]] };
-    }), true);
-    assert.equal(await processNextPageRecognition(worker, async () => assert.fail('text page should not run OCR')), false);
+    }, undefined, { ...mixedJob, page: 2 }), true);
+    assert.equal(await processNextPageRecognition(worker, async () => assert.fail('text page should not run OCR'), undefined, { ...mixedJob, page: 1 }), false);
     assert.equal(await libraryStatus(), 'needs_review');
     assert.equal((await request(owner, 'POST', mixed + '/pages/2/confirm', {})).statusCode, 409);
     const pdfCrop = mixed + '/recognition/100/figures/0';
@@ -578,23 +612,9 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     const variant = Buffer.concat([pdf, Buffer.from('\n% independently uploaded variant\n')]);
     const variantUpload = (await request(owner, 'POST', uploadPath + '&school=equivalence-test', variant)).json();
     const variantPath = '/papers/' + variantUpload.paper.id;
-    assert.equal(await processNextPaper(worker), true);
+    assert.equal(await processNextPaper(worker, undefined, undefined, undefined, ownerJob(variantUpload.paper.id)), true);
     const linkedQuestion = (await request(owner, 'POST', variantPath + '/questions', question)).json().id;
     assert.equal((await request(owner, 'POST', variantPath + '/questions/' + linkedQuestion + '/kind', { kind: 'short_answer' })).statusCode, 200);
-    // The original question changed from other to short_answer above. Its old
-    // attempt must not count as current coverage until the new input is practised.
-    const beforeKindRetake = (await request(owner, 'GET', '/progress')).json().courses.find(item => item.id === course.json().course.id);
-    const kindRetakeResponse = await request(owner, 'POST', practicePath, {});
-    assert.equal(kindRetakeResponse.statusCode, 200, kindRetakeResponse.body);
-    const kindRetake = kindRetakeResponse.json();
-    assert.notEqual(kindRetake.attemptId, attempt.attemptId);
-    assert.equal(kindRetake.questions[0].kind, 'short_answer');
-    const kindSubmission = await request(owner, 'POST', practicePath + '/save', {
-      revision: kindRetake.revision, answers, submit: true
-    });
-    assert.equal(kindSubmission.statusCode, 200, kindSubmission.body);
-    const afterKindRetake = (await request(owner, 'GET', '/progress')).json().courses.find(item => item.id === course.json().course.id);
-    assert.equal(afterKindRetake.completedPapers, beforeKindRetake.completedPapers + 1);
     const equivalents = questionPath + '/equivalences';
     const priorCoverage = (await request(owner, 'GET', '/progress')).json().courses.find(item => item.id === course.json().course.id);
     assert.equal((await request(other, 'GET', equivalents)).statusCode, 404);
@@ -623,7 +643,6 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     const unordered = await request(owner, 'POST', uploadPath + '&school=page-order-test&autoTitle=true', samplePaper(true));
     const unorderedId = unordered.json().paper.id;
     const unorderedPath = '/papers/' + unorderedId;
-    const ownerId = (await admin.query('SELECT tenant_id FROM papers WHERE id = $1', [unorderedId])).rows[0].tenant_id;
     assert.equal(await processNextPaper(worker, undefined, undefined, undefined, { tenant: ownerId, id: unorderedId }, true), true);
     assert.deepEqual((await request(owner, 'GET', unorderedPath)).json().pageReviews.map(row => [row.page, row.status]),
       [[1, 'queued'], [2, 'queued']]);
@@ -638,8 +657,6 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
             : ['Derive the tangent slope.', 'Compute the variance.', 'Prove the limit exists.']
         }), undefined, { tenant: ownerId, id: unorderedId, page }, true, true), true);
         assert.deepEqual((await request(owner, 'GET', unorderedPath)).json().paper.pageOrder, page === 1 ? [] : [2, 1]);
-        const prediction = (await request(owner, 'GET', predictionPath)).json().prediction;
-        assert.equal(prediction.status, page === 1 ? 'superseded' : 'queued');
       }
     } finally {
       await pageWorker.end();
@@ -730,6 +747,9 @@ test('archives model-identified PDF covers only when the course match is unique'
     const assigned = (await call('GET', '/courses/' + course.id + '/papers')).json().papers;
     assert.equal(assigned[0].libraryStatus, 'ready');
     assert.equal((await admin.query('SELECT count(*)::int AS total FROM paper_questions WHERE paper_id = $1 AND solution_status = $2', [id, 'queued'])).rows[0].total, 5);
+    assert.equal((await admin.query('SELECT count(*)::int AS total FROM predictions WHERE tenant_id = $1 AND course_id = $2', [tenant, course.id])).rows[0].total, 0);
+    const confirm = await call('POST', '/courses/' + course.id + '/prediction/confirm-sources', { paperIds: [id] });
+    assert.equal(confirm.statusCode, 200, confirm.body);
     assert.equal((await admin.query('SELECT count(*)::int AS total FROM predictions WHERE tenant_id = $1 AND course_id = $2', [tenant, course.id])).rows[0].total, 1);
 
     const scan = await call('POST', path, samplePaper(true));

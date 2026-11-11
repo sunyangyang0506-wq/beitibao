@@ -17,6 +17,7 @@ import { loadPaperOriginal, maxPrivatePdfBytes, type PaperOriginal } from './pap
 import { schoolOf } from './school-identity.js';
 import { queueCoursePrediction } from './predictions.js';
 import { registerPaperDeletion } from './paper-deletion.js';
+import { lockPredictionSourceCourse, predictionSources } from './prediction-access.js';
 
 const uuid = { type: 'string', format: 'uuid' };
 const security = [{ session: [] }];
@@ -29,7 +30,8 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
   let previews = 0;
   registerRecognitionReview(app, pool, prefix, privatePapers, localModelPreview);
   const uploadLimit = localModelPreview ? maxPrivatePdfBytes : maxPdfBytes;
-  registerPdfPageRecognition(app, pool, prefix, privatePapers?.modelsEnabled);
+  const predictionsEnabled = privatePapers?.predictionsEnabled ?? localModelPreview;
+  registerPdfPageRecognition(app, pool, prefix, privatePapers?.modelsEnabled, predictionsEnabled);
   registerRecallRoutes(app, pool, prefix, privatePapers?.modelsEnabled);
   registerQuestionEquivalence(app, pool, prefix);
   if (privatePapers) {
@@ -73,7 +75,9 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
           ) page_review
           WHERE tenant_id = $1 AND ($2::uuid IS NULL OR course_id = $2) AND NOT is_prediction ORDER BY created_at DESC
         `, [tenant, courseId]);
-        return { course: course?.rows[0] ?? null, papers: rows, schoolSharingAvailable: Boolean(await schoolOf(db, tenant)), modelUploads: privatePapers?.modelsEnabled ?? localModelPreview, ...(privatePapers && {
+        const predictionMaterials = courseId ? await predictionSources(db, tenant, courseId) : null;
+        return { course: course?.rows[0] ?? null, papers: rows, sourcesConfirmed: predictionMaterials?.confirmed ?? false,
+          schoolSharingAvailable: Boolean(await schoolOf(db, tenant)), modelUploads: privatePapers?.modelsEnabled ?? localModelPreview, ...(privatePapers && {
           uploadMode: 'private'
         }), ...(localModelPreview && { maxUploadMb: 50 }) };
       });
@@ -106,6 +110,7 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
         if (request.query.shareAtSchool && !schoolId) return 'sharing' as const;
         const course = await db.query<{ name: string }>('SELECT name FROM courses WHERE tenant_id = $1 AND id = $2', [tenant, courseId]);
         if (courseId && !course.rowCount) return null;
+        if (courseId) await lockCourseMaterial(db, tenant, courseId);
         const key = [tenant, courseId, hash(pdf)];
         const cacheKey = school && course.rows[0] ? hash(JSON.stringify([tenant, school, course.rows[0]!.name.toLowerCase(), key[2], paperSolutionVersion, image ? imagePromptVersion : null])) : null;
         const cached = cacheKey && await db.query('SELECT cache_key FROM paper_model_cache WHERE cache_key = $1', [cacheKey]);
@@ -158,7 +163,7 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
         if (paper.course_id || paper.running || ['queued', 'processing'].includes(paper.status)) return 'conflict';
         if (paper.duplicate) return 'duplicate';
         await db.query('UPDATE papers SET course_id = $3 WHERE tenant_id = $1 AND id = $2', [tenant, paperId, courseId]);
-        if (privatePapers?.predictionsEnabled ?? localModelPreview) await queueCoursePrediction(db, tenant, courseId);
+        if (predictionsEnabled) await queueCoursePrediction(db, tenant, courseId);
         return 'saved';
       });
       if (result === 'missing') return reply.code(404).send({ code: 'PAPER_NOT_FOUND' });
@@ -300,6 +305,7 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
       const { paperId } = request.params;
       const { revision, missingPages, pageOrder } = request.body;
       const outcome = await asTenant(pool, tenant, async db => {
+        const courseId = predictionsEnabled ? await lockPredictionSourceCourse(db, tenant, paperId) : null;
         const { rows: [current] } = await db.query<{ count: number; review_revision: number }>(`
           SELECT jsonb_array_length(pages) AS count, review_revision FROM papers
           WHERE tenant_id = $1 AND id = $2 AND status = 'review' AND NOT is_prediction FOR UPDATE
@@ -314,6 +320,7 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
           UPDATE papers SET share_school_id = NULL, school_content_key = NULL, page_order = coalesce($3::int[], page_order), missing_pages = $4, review_revision = review_revision + 1
           WHERE tenant_id = $1 AND id = $2 RETURNING ${fields}
         `, [tenant, paperId, pageOrder ?? null, missingPages]);
+        if (courseId && !missingPages) await queueCoursePrediction(db, tenant, courseId);
         return { paper: updated };
       });
       return typeof outcome === 'string' ? reply.code(outcome === 'PAPER_NOT_FOUND' ? 404 :
@@ -332,6 +339,7 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
       if (!stem || stem.includes('\u0000')) return reply.code(400).send({ code: 'INVALID_QUESTION' });
       const key = [tenant, request.params.paperId, pageNumber, hash(stem)];
       const result = await asTenant(pool, tenant, async (db) => {
+        const courseId = predictionsEnabled ? await lockPredictionSourceCourse(db, tenant, request.params.paperId) : null;
         const { rows: [paper] } = await db.query<{ count: number; model_allowed: boolean }>(`
           SELECT jsonb_array_length(pages) AS count, model_allowed FROM papers
           WHERE tenant_id = $1 AND id = $2 AND status = 'review' AND NOT is_prediction AND jsonb_array_length(pages) >= $3
@@ -347,6 +355,7 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
           (privatePapers?.modelsEnabled || localModelPreview) && paper.model_allowed ? 'queued' : null]);
         if (inserted.rowCount) {
           await db.query('UPDATE papers SET share_school_id=NULL, school_content_key=NULL WHERE tenant_id=$1 AND id=$2 AND (share_school_id IS NOT NULL OR school_content_key IS NOT NULL)', key.slice(0, 2));
+          if (courseId) await queueCoursePrediction(db, tenant, courseId);
           return { id: inserted.rows[0].id, reused: false };
         }
         const existing = await db.query(`

@@ -46,28 +46,6 @@ export async function saveCourse(pool: Pool, tenantId: string, input: CourseInpu
 export function getProgress(pool: Pool, tenantId: string) {
   return asTenant(pool, tenantId, async (db) => {
     const { rows } = await db.query<Course & { totalPapers: number; completedPapers: number }>(`
-      WITH covered AS (
-        SELECT DISTINCT coalesce(e.anchor_id, q.id) AS id
-        FROM paper_questions q
-        JOIN papers p ON (q.tenant_id, q.paper_id) = (p.tenant_id, p.id) AND NOT p.is_prediction
-        LEFT JOIN current_question_equivalence e ON (e.tenant_id, e.member_id) = (q.tenant_id, q.id)
-        LEFT JOIN question_recall r ON (r.tenant_id, r.question_id) = (q.tenant_id, q.id)
-        WHERE q.tenant_id = $1 AND (
-          (r.self_rating IS NOT NULL AND coalesce(r.assessed_revision, 1) = q.input_revision
-            AND practice_stem_key(coalesce(r.stem_correction,q.stem)) = practice_stem_key(q.stem))
-          OR EXISTS (
-            SELECT 1 FROM submitted_practice_history a
-            CROSS JOIN LATERAL jsonb_array_elements(a.questions) input
-            WHERE a.tenant_id=q.tenant_id AND a.paper_id=q.paper_id AND input->>'id'=q.id::text
-              AND coalesce((input->>'inputRevision')::int,1)=q.input_revision
-              AND practice_stem_key(input->>'stem') = practice_stem_key(coalesce(r.stem_correction,q.stem))
-              AND (input->>'visualReview') IS NOT DISTINCT FROM q.visual_review
-              AND (NOT input ? 'kind' OR input->>'kind'=q.question_kind)
-              AND CASE WHEN a.covered IS NOT NULL THEN q.id=ANY(a.covered)
-                ELSE coalesce(a.answers->>q.id::text,'') ~ '[^[:space:]]' END
-          )
-        )
-      )
       SELECT c.id, c.name, c.teacher, c.term,
         to_char(c.exam_at AT TIME ZONE 'Asia/Shanghai', 'YYYY-MM-DD"T"HH24:MI') AS "examAt",
         (SELECT a.paper_id FROM practice_attempts a
@@ -75,21 +53,10 @@ export function getProgress(pool: Pool, tenantId: string) {
           WHERE a.tenant_id = c.tenant_id AND draft.course_id = c.id AND NOT draft.is_prediction
             AND a.submitted_at IS NULL AND (a.deadline_at IS NULL OR a.deadline_at > now())
           ORDER BY a.revision DESC, a.paper_id LIMIT 1) AS "draftPaperId",
-        count(p.id)::int AS "totalPapers",
-        count(p.id) FILTER (WHERE p.status = 'review' AND NOT p.missing_pages AND NOT EXISTS (
-          SELECT 1 FROM paper_page_recognition r WHERE (r.tenant_id, r.paper_id) = (p.tenant_id, p.id) AND r.reviewed_at IS NULL
-        ) AND EXISTS (
-          SELECT 1 FROM paper_questions q WHERE q.tenant_id = p.tenant_id AND q.paper_id = p.id
-        ) AND NOT EXISTS (
-          SELECT 1 FROM paper_questions q
-          LEFT JOIN current_question_equivalence e ON (e.tenant_id, e.member_id) = (q.tenant_id, q.id)
-          LEFT JOIN covered done ON done.id = coalesce(e.anchor_id, q.id)
-          WHERE q.tenant_id = p.tenant_id AND q.paper_id = p.id
-            AND done.id IS NULL
-        ))::int AS "completedPapers"
+        progress.total_papers AS "totalPapers", progress.completed_papers AS "completedPapers"
       FROM courses c
-      LEFT JOIN papers p ON (p.tenant_id, p.course_id) = (c.tenant_id, c.id) AND NOT p.is_prediction
-      WHERE c.tenant_id = $1 GROUP BY c.tenant_id, c.id ORDER BY c.created_at DESC, c.id
+      JOIN course_learning_progress progress ON (progress.tenant_id, progress.course_id) = (c.tenant_id, c.id)
+      WHERE c.tenant_id = $1 ORDER BY c.created_at DESC, c.id
     `, [tenantId]);
     const courses = rows.map((course) => ({
       ...course,

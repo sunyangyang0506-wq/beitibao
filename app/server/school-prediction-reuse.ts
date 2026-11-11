@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg';
 import { schoolOf, setTenant, subjectKey } from './school-identity.js';
 import { reuseDigest } from './school-paper-reuse.js';
+import { predictionSources } from './prediction-access.js';
 import { minimumPaperQuestions, predictionBlueprint, predictionModel, predictionVersion, validatePrediction,
   type Evidence, type Predicted } from './prediction-model.js';
 
@@ -12,18 +13,14 @@ type ReadInput = (db: PoolClient, tenant: string, course: string) => Promise<Pre
 async function schoolInput(db: PoolClient, tenant: string, courseId: string, evidence: Evidence[]) {
   if (predictionBlueprint(evidence).length < minimumPaperQuestions) return null;
   await setTenant(db, tenant);
+  const material = await predictionSources(db, tenant, courseId);
+  if (!material?.confirmed || !material.ready) return null;
   const school = await schoolOf(db, tenant);
   if (!school) return null;
-  const { rows: [course] } = await db.query<{ name: string; teacher: string; term: string }>(
-    'SELECT name,teacher,term FROM courses WHERE tenant_id=$1 AND id=$2', [tenant, courseId]);
+  const { rows: [course] } = await db.query<{ name: string }>(
+    'SELECT name FROM courses WHERE tenant_id=$1 AND id=$2', [tenant, courseId]);
   if (!course) return null;
-  const normalize = (value: string) => value.normalize('NFKC').toLowerCase().replace(/\s+/gu, '');
   const subject = subjectKey(course.name);
-  const term = normalize(course.term);
-  const teacher = normalize(course.teacher);
-  const scope = subject === '408' ? 'national-408' : teacher;
-  // A label such as 本学期 cannot identify the same assessment period across accounts.
-  if (!scope || !/20\d{2}/u.test(term)) return null;
   const { rows } = await db.query<{ id: string; school_content_key: string | null; authorized: boolean }>(`
     SELECT p.id,p.school_content_key, EXISTS (
       SELECT 1 FROM school_paper_index i
@@ -40,7 +37,7 @@ async function schoolInput(db: PoolClient, tenant: string, courseId: string, evi
       AND EXISTS (SELECT 1 FROM paper_questions q WHERE (q.tenant_id,q.paper_id)=(p.tenant_id,p.id))
       AND NOT EXISTS (SELECT 1 FROM paper_page_recognition r WHERE (r.tenant_id,r.paper_id)=(p.tenant_id,p.id) AND r.reviewed_at IS NULL)
   `, [tenant, courseId, school, subject]);
-  if (!rows.length || rows.some(row => !row.authorized || !row.school_content_key)) return null;
+  if (rows.length !== material.paperIds.length || rows.some(row => !row.authorized || !row.school_content_key)) return null;
   const revised = await db.query(`SELECT 1 FROM paper_questions WHERE tenant_id=$1 AND paper_id=ANY($2::uuid[]) AND input_revision>1 LIMIT 1`, [tenant, rows.map(row => row.id)]);
   if (revised.rowCount) return null;
   const papers = new Map(rows.map(row => [row.id, row.school_content_key!]));
@@ -52,7 +49,7 @@ async function schoolInput(db: PoolClient, tenant: string, courseId: string, evi
   }
   const versions = [...new Set(papers.values())].sort();
   const keys = [...new Set(stableById.values())].sort();
-  return { school, stableById, key: reuseDigest([school, subject, scope, term, versions, keys, predictionModel, predictionVersion]) };
+  return { school, stableById, key: reuseDigest(['complete-paper-set-v1', school, subject, versions, keys, predictionModel, predictionVersion]) };
 }
 
 async function copyPrediction(db: PoolClient, origin: IndexJob, from: Map<string, string>, to: Map<string, string>, evidence: Evidence[]) {

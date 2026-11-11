@@ -187,8 +187,8 @@ try {
   }
   assert.equal(await processNextPaper(worker), false);
   assert.equal(await processNextPageRecognition(worker), false);
-  const noEvidence = await call(owner, 'POST', '/courses/' + course.id + '/prediction', {}, 409);
-  assert.equal(noEvidence.json().code, 'PREDICTION_NO_EVIDENCE');
+  const unconfirmed = await call(owner, 'POST', '/courses/' + course.id + '/prediction', {}, 409);
+  assert.equal(unconfirmed.json().code, 'PREDICTION_SOURCES_UNCONFIRMED');
   const pages = result.papers.flatMap(paper => paper.pages);
   result.summary = {
     papers: result.papers.length, previewedPages: pages.length, textLayerPages: pages.filter(page => page.textCharacters > 0).length,

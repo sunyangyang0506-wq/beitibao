@@ -83,6 +83,11 @@ async function submittedQuestions(db: PoolClient, tenant: string, questionId?: s
     WHERE a.tenant_id = $1 AND a.submitted_at IS NOT NULL ${filter}
       AND NOT EXISTS (SELECT 1 FROM practice_attempts active WHERE active.tenant_id=a.tenant_id
         AND active.paper_id=a.paper_id AND active.submitted_at IS NULL)
+      AND (NOT p.is_prediction OR EXISTS (
+        SELECT 1 FROM course_learning_progress progress
+        WHERE (progress.tenant_id,progress.course_id) = (p.tenant_id,p.course_id)
+          AND progress.total_papers > 0 AND progress.completed_papers = progress.total_papers
+      ))
     ORDER BY a.submitted_at DESC, a.paper_id, q.value ->> 'id'
   `, questionId ? [tenant, questionId] : [tenant]);
 }

@@ -109,6 +109,8 @@ const identified = (paper, now) => !paper.uploadedAt || elapsed(paper, now) >= 9
 const questionsReady = (paper, now) => elapsed(paper, now) >= 2000;
 const answersReady = (paper, now) => elapsed(paper, now) >= 3200;
 const predictionReady = (paper, now) => elapsed(paper, now) >= 4700;
+const originalPaperSet = course => course.papers.map(paper => paper.id).sort().join(',');
+const samplePredictionSource = course => course?.papers.findLast(paper => paper.sample);
 const fileTitle = file => file.name.replace(/\.pdf$/i, '').trim();
 const normalized = name => name.normalize('NFKC').replace(/\s+/gu, '').toLowerCase();
 
@@ -167,6 +169,8 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
   const [mistakes,setMistakes] = useWorkspace('mistakes',{});
   const [drafts,setDrafts] = useWorkspace('drafts',{});
   const [finished,setFinished] = useWorkspace('finished',{});
+  const [confirmedSources,setConfirmedSources] = useWorkspace('prediction-sources', account ? {} :
+    Object.fromEntries(initialCourses.map(course => [course.id, originalPaperSet(course)])));
   const [screen,setScreen] = useState('progress');
   const [filter,setFilter] = useState('全部');
   const [courseId,setCourseId] = useState('');
@@ -195,14 +199,22 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
   const samples = account ? [] : demoMistakes;
   const course = courses.find(c => c.id === courseId);
   const allPapers = [...courses.flatMap(item => item.papers), ...unassignedPapers];
-  const newestDemoPaper = course?.papers.findLast(item => item.sample && item.status !== '待归属');
-  const pendingPrediction = newestDemoPaper && !newestDemoPaper.generatedPrediction;
-  const predictionQuestions = newestDemoPaper?.generatedPrediction ?? course?.prediction ?? [];
-  const predictionKey = newestDemoPaper?.generatedPrediction ? newestDemoPaper.id + '-prediction' : course?.id + '-prediction';
+  const sourcesConfirmed = item => item.papers.length > 0 && confirmedSources[item.id] === originalPaperSet(item);
+  const awaitingDemoPrediction = item => {
+    const sample = samplePredictionSource(item);
+    return sample && sourcesConfirmed(item) && sample.predictionSourceSet !== originalPaperSet(item)
+      && item.papers.every(paper => paperState(paper) === '可练习' && paper.questions.length > 0);
+  };
+  const newestDemoPaper = samplePredictionSource(course);
+  const pendingPrediction = course && awaitingDemoPrediction(course);
+  const predictionQuestions = newestDemoPaper ? (pendingPrediction ? [] : newestDemoPaper.generatedPrediction ?? []) : course?.prediction ?? [];
+  const predictionKey = newestDemoPaper ? newestDemoPaper.id + '-prediction-' + originalPaperSet(course) : course?.id + '-prediction';
   const predictionHistory = Object.values(finished).filter(result => result?.kind === 'prediction' && result.courseId === courseId && result.key !== predictionKey);
   const predictionSources = newestDemoPaper?.generatedPrediction ? [newestDemoPaper] : course?.papers.filter(p => p.questions.length) ?? [];
   const paper = course?.papers.find(p => p.id === paperId) ?? unassignedPapers.find(p => p.id === paperId);
-  const hasJobs = allPapers.some(item => item.uploadedAt && (!identified(item, jobClock) || item.status === '识别中' || (item.sample && item.status === '可练习' && !item.generatedPrediction)));
+  const hasJobs = allPapers.some(item => item.uploadedAt && (!identified(item, jobClock) || item.status === '识别中'
+    || (item.sample && item.status === '可练习' && !answersReady(item, jobClock))))
+    || courses.some(awaitingDemoPrediction);
   const storedPaperId = screen === 'reader' && paper?.filesStored ? paper.id : null;
   useEffect(() => {
     if (!storedPaperId) return;
@@ -223,26 +235,22 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
   }, [hasJobs]);
 
   useEffect(() => {
-    function advance(paper) {
+    function advance(paper, owner) {
       let next = paper;
       if (paper.status === '识别中' && questionsReady(paper, jobClock)) {
         next = { ...next, status: paper.sample ? '可练习' : '待核对',
           questions: paper.sample ? demoRecognitionQuestions(paper.id) : [] };
       }
-      if (next.sample && next.status === '可练习' && !next.generatedPrediction && predictionReady(next, jobClock)) {
-        next = { ...next, generatedPrediction: demoPredictionFor(next) };
+      if (next.sample && next.id === samplePredictionSource(owner)?.id && awaitingDemoPrediction(owner) && predictionReady(next, jobClock)) {
+        next = { ...next, generatedPrediction: demoPredictionFor(next), predictionSourceSet: originalPaperSet(owner) };
       }
       return next;
     }
-    if (!courses.some(item => item.papers.some(paper => advance(paper) !== paper))) return;
-    setCourses(current => current.map(item => ({ ...item, papers: item.papers.map(advance) })));
-  }, [jobClock, courses]);
+    if (!courses.some(item => item.papers.some(paper => advance(paper, item) !== paper))) return;
+    setCourses(current => current.map(item => ({ ...item, papers: item.papers.map(paper => advance(paper, item)) })));
+  }, [jobClock, courses, confirmedSources]);
 
   const sourceUrl = paper?.filesStored ? (localPages.id === paper.id ? localPages.urls?.[0] : null) : paper?.pages[0]?.url;
-  const mistakeEntries = [...Object.values(mistakes), ...samples.filter(entry => !mistakes[entry.q.id])];
-  const visibleMistakes = mistakeEntries.filter(m => (mistakeFilter === '全部' || m.status === mistakeFilter) &&
-    (!mistakeCourse || m.courseId === mistakeCourse) && (!mistakeType || m.q.type === mistakeType) &&
-    (!mistakeDay || dayKey(m.at) === mistakeDay)).sort((a,b)=>b.at-a.at);
   const draft = session?.submitted && session.draft ? session.draft : drafts[session?.key] || {};
   const questions = session?.questions || [];
   const byType = [...new Set(course?.papers.flatMap(p => p.questions.map(q => q.type)))];
@@ -253,6 +261,11 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
   const complete = p => paperState(p) === '可练习' && p.questions.length > 0 && count(p) === p.questions.length;
   const remaining = c => c.papers.filter(p => !complete(p)).length;
   const completed = c => c.papers.length > 0 && remaining(c) === 0;
+  const mistakeEntries = [...Object.values(mistakes), ...samples.filter(entry => !mistakes[entry.q.id])]
+    .filter(entry => !entry.q.paperId?.endsWith('-prediction') || courses.some(item => item.id === entry.courseId && completed(item)));
+  const visibleMistakes = mistakeEntries.filter(m => (mistakeFilter === '全部' || m.status === mistakeFilter) &&
+    (!mistakeCourse || m.courseId === mistakeCourse) && (!mistakeType || m.q.type === mistakeType) &&
+    (!mistakeDay || dayKey(m.at) === mistakeDay)).sort((a,b)=>b.at-a.at);
   const allDone = courses.filter(completed).length;
   const isExam = screen === 'exam' && !session?.submitted;
   const answered = questions.filter(q => draft.answers?.[q.id]?.trim()).length;
@@ -436,7 +449,6 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
 
 
   const uploadResults = uploadIds.map(id => allPapers.find(paper => paper.id === id)).filter(Boolean);
-  const recentPredictionCourse = courses.find(item => item.papers.some(p => uploadIds.includes(p.id) && p.sample));
   const canShowAnswer = q => {
     const source = allPapers.find(item => item.id === q.paperId);
     return !source?.sample || answersReady(source, jobClock);
@@ -450,7 +462,11 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
   return <div className="app">
     <aside className="sidebar"><div className="brand"><div className="brand-icon"><BookOpen size={21} weight="bold"/></div><div>背题宝<small>PC 复习工作区</small></div></div>
       <div className="nav-label">复习工作区</div>
-      {nav.map(([id,label,Icon]) => <button key={id} className={'nav '+((screen===id || (id==='practice' && screen==='exam' && session.kind!=='prediction' && session.kind!=='redo') || (id==='prediction' && screen==='exam' && session.kind==='prediction') || (id==='mistakes' && screen==='exam' && session.kind==='redo') || (id==='papers' && screen==='reader'))?'active':'')} onClick={() => go(id)}><Icon size={21}/>{label}</button>)}
+      {nav.map(([id,label,Icon]) => <React.Fragment key={id}>
+        <button className={'nav '+((screen===id || (id==='practice' && screen==='exam' && session.kind!=='prediction' && session.kind!=='redo') || (id==='prediction' && screen==='exam' && session.kind==='prediction') || (id==='mistakes' && screen==='exam' && session.kind==='redo') || (id==='papers' && screen==='reader'))?'active':'')}
+          aria-describedby={id === 'prediction' ? 'prediction-nav-hint' : undefined} onClick={() => go(id)}><Icon size={21}/>{label}</button>
+        {id === 'prediction' && <small className="prediction-nav-hint" id="prediction-nav-hint">学完整科后解锁</small>}
+      </React.Fragment>)}
       <div className="sidebar-foot">{course ? <><strong>{course.name}</strong><small>{course.teacher} · {course.term}</small></> : <><strong>{account ? '学员 ' + account.phone.slice(0, 3) + '****' + account.phone.slice(-4) : '示例工作区'}</strong><small>学科上限 {subjectLimit} 门</small></>}</div>
     </aside>
     <div className="main">
@@ -466,14 +482,14 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
         </section>}
         <div className="metrics">{[['科目总数',courses.length,BookOpen],['背题完成',allDone,CheckCircle],['尚未完成',courses.length-allDone,ChartBar]].map(([label,value,Icon])=><div className="metric" key={label}><div className="metric-icon"><Icon size={23}/></div><div><span>{label}</span><div><strong>{value}</strong> 门</div></div></div>)}</div>
         <section className="panel table-panel"><div className="panel-head"><div><h2>科目进展</h2><p>原卷背题按套统计，预测卷单独记录。</p></div><div className="segments">{['全部','未完成','已完成'].map(f=><button key={f} className={filter===f?'selected':''} onClick={()=>setFilter(f)}>{f}</button>)}</div></div>
-        <table><thead><tr><th>科目</th><th>原卷背题进展</th><th>剩余套数</th><th>考题预测</th><th>下一步</th></tr></thead><tbody>{courses.filter(c=>filter==='全部'||(filter==='已完成')===completed(c)).map(c=>{
+        <table><thead><tr><th>科目</th><th>原卷背题进展</th><th>剩余套数</th><th>考题预测</th></tr></thead><tbody>{courses.filter(c=>filter==='全部'||(filter==='已完成')===completed(c)).map(c=>{
           const total=c.papers.length, left=remaining(c), done=total-left;
           return <tr key={c.id}><td><strong>{c.name}</strong><small>{c.teacher || '教师未填写'} · {c.term}</small>
             <button type="button" className="link prototype-exam-time"
               aria-label={(c.examAt ? '修改考试时间：' : '考试时间：') + c.name}
               onClick={() => { setExamCourseId(c.id); setDialog('exam-time'); }}>
               {c.examAt ? <time dateTime={c.examAt}>考试 {c.examAt.replace('T', ' ')}</time> : '考试时间'}
-            </button></td><td><span>已完成 {done} / {total} 套</span><progress value={done} max={total||1}/></td><td>{total ? left ? <strong>{left} 套</strong> : badge('已完成','green') : '待上传'}</td><td>{button(c.prediction || c.papers.some(p => p.sample) ? '查看预测卷' : '查看生成条件',()=>{changeCourse(c.id);go('prediction');},'link')}</td><td>{button(total?(completed(c)?'查看试卷':'继续背题'):'上传试卷',()=>{changeCourse(c.id); if(total){setMode('whole');setPaperId((c.papers.find(p=>drafts[p.id]&&!complete(p))||c.papers.find(p=>p.questions.length&&!complete(p)))?.id||'');go(completed(c)?'papers':'practice');}else{go('papers');openUpload();}},'secondary')}</td></tr>;
+            </button></td><td><span>已完成 {done} / {total} 套</span><progress value={done} max={total||1}/></td><td>{total ? left ? <strong>{left} 套</strong> : badge('已完成','green') : '待上传'}</td><td>{completed(c) ? button('查看预测卷',()=>{changeCourse(c.id);go('prediction');},'link') : <span className="prediction-locked-label">学完整科后解锁</span>}</td></tr>;
         })}</tbody></table></section>
       </main>}
 
@@ -497,8 +513,16 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
             <p>当前演示只回放配套样卷，其他 PDF 只保留原卷，不虚构科目或题目。</p>{button('查看原卷',()=>go('reader'))}</section>}
       </section>}
 
-      {screen==='prediction' && <main className="content"><div className="intro"><div className="eyebrow">每科一套</div><h1>考题预测</h1><p>原卷识别结束后，系统自动为符合条件的科目生成一套预测卷。</p></div>
+      {screen==='prediction' && <main className="content"><div className="intro"><div className="eyebrow">每科一套</div><h1>考题预测</h1><p>学完本科目全部原卷后解锁预测卷。</p></div>
         <section className="panel padded"><h2>选择科目</h2>{courseSelect}
+        <p>原卷传齐并确认后，系统自动准备预测卷。同校、同科且完整原卷内容一致的学员共用一套预测卷，各自完成学习后解锁。</p>
+        {!course ? <div className="empty">请选择要查看的科目。</div> : !completed(course) ? <div className="empty">
+          <h2>学完整科后解锁</h2><p>请完成本科目全部原卷的作答或背诵自评，预测卷会在完成后展示。</p>
+          {button('继续学习本科目',()=>{changeCourse(course.id);setMode('whole');go('practice');})}
+          {course.papers.length > 0 && !sourcesConfirmed(course) && button('前往试卷库确认',()=>go('papers'),'link')}
+        </div> : !sourcesConfirmed(course) ? <div className="empty">
+          <p>请确认本科目的原卷已传齐，系统将自动准备预测卷。</p>{button('前往试卷库确认',()=>go('papers'))}
+        </div> : <>
         {pendingPrediction && <div className="pipeline-progress" role="status">{badge('自动生成中','blue')}<strong>正在组卷与复核</strong><p>原卷答案和预测卷独立生成。所有题通过复核后，整套预测卷会自动出现在这里。</p></div>}
         {predictionQuestions.length > 0 ? <div className="prediction">
           <div className="panel-head"><div>{badge('整套预测卷','blue')} {badge('样卷演示')}
@@ -516,8 +540,8 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
           {predictionHistory.length > 0 && <details><summary>历史预测卷作答</summary>
             {predictionHistory.map(result=><button key={result.key} className="link" onClick={()=>openResult(result.key)}>{mistakeTime.format(result.submittedAt)} · 查看结果</button>)}
           </details>}
-        </div> : !pendingPrediction && <div className="empty">{course ? '可用来源题不足 5 道，上传原卷后会自动检查。' : '选择科目后查看该科目的预测卷。'}
-          {course && button('上传试卷',()=>{go('papers');openUpload();},'link')}</div>}</section>
+        </div> : !pendingPrediction && <div className="empty">暂无可用的预测卷。{button('查看原卷',()=>go('papers'),'link')}</div>}
+        </>}</section>
       </main>}
 
       {screen==='mistakes' && <main className="content"><div className="intro"><div className="eyebrow">薄弱项复习</div><h1>错题本</h1><p>从原卷或预测卷回到上次卡住的地方。</p></div><section className="panel padded"><div className="panel-head flush"><div className="segments">{['全部','待重练','待复核','已重练'].map(f=><button key={f} aria-pressed={mistakeFilter===f} className={mistakeFilter===f?'selected':''} onClick={()=>setMistakeFilter(f)}>{f}</button>)}</div></div><div className="prototype-filters">
@@ -541,7 +565,8 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
       {screen==='papers' && <main className="content"><div className="intro"><div className="eyebrow">试卷归档</div><h1>试卷库</h1><p>按科目管理 PDF 原卷，查看识别进度和下一步。</p></div>
       {uploadResults.length > 0 && <section className="panel padded prototype-guide">
         <h2>上传处理进度 <span className="badge blue">原型演示</span></h2>
-        <div className="pipeline-steps" aria-label="自动处理流程"><span>01 上传 PDF</span><span>02 识别科目与卷名</span><span>03 生成原卷答案与整套预测卷</span></div>
+        <div className="pipeline-steps" aria-label="自动处理流程"><span>01 上传 PDF</span><span>02 识别科目与卷名</span><span>03 生成原卷答案</span></div>
+        <p>原卷传齐后，在所属科目的原卷列表确认。</p>
         <div role="status">{uploadResults.map(item => {
           const known = identified(item, jobClock);
           const state = known ? paperState(item) : '识别中';
@@ -554,12 +579,10 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
               {badge(state,state === '可练习' ? 'green' : 'amber')}
               {known && item.sample && item.recognition.targetId && <>
                 {badge(answersReady(item, jobClock) ? '原卷答案已就绪' : '原卷答案生成中', answersReady(item, jobClock) ? 'green' : 'blue')}
-                {badge(item.generatedPrediction ? '整套预测卷已就绪' : '预测卷自动生成中',item.generatedPrediction ? 'green' : 'blue')}
               </>}
             </div>
           </div>;
         })}</div>
-        {recentPredictionCourse && button('查看整套预测卷',()=>{changeCourse(recentPredictionCourse.id);go('prediction');},'link')}
       </section>}
       {!course && unassignedPapers.length > 0 && <section className="panel padded prototype-guide"><h2>待处理</h2>
         {unassignedPapers.map(item => <div key={item.id} className="paper-row">
@@ -569,6 +592,14 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
         </div>)}
       </section>}
       <section className="panel padded"><div className="panel-head flush"><h2>原卷列表</h2>{courseSelect}</div>
+      {course?.papers.length > 0 && <div className="notice prediction-source-confirmation">
+        <p>{sourcesConfirmed(course) ? '本科目原卷已确认传齐，学完整科后解锁预测卷。'
+          : '本科目的所有原卷传齐后，请在此确认。系统将自动准备预测卷，学完整科后解锁。'}</p>
+        {button(sourcesConfirmed(course) ? '已确认原卷传齐' : '确认原卷已传齐',()=>{
+          setConfirmedSources(current => ({ ...current, [course.id]: originalPaperSet(course) }));
+          setJobClock(Date.now());
+        },'secondary',sourcesConfirmed(course))}
+      </div>}
       {(course?[course]:courses).flatMap(c=>c.papers.map(p=><div className="paper-row" key={p.id}><FileText size={22}/>
         <div className="grow"><strong>{c.name} · {identified(p,jobClock) ? p.title : p.pages[0].name}</strong><small>{paperNext[paperState(p)]}</small></div>
         {badge(paperState(p),paperState(p)==='可练习'?'green':'amber')}
@@ -643,7 +674,7 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
     </form>}
     {dialog==='upload'&&<form className="form" onSubmit={addPaper}><h2>上传试卷</h2>
       <p>只支持 PDF，单次最多 30 份，每份最多 50 MB，独立处理。模型从卷面识别并自动归属科目。题目直接在题目背诵展示。</p>
-      <div className="sample-box"><strong>体验完整自动流程</strong><p>上传配套样卷后会回放识别、原卷解析与整套预测结果。你也可以选本机 PDF 预览。</p>
+      <div className="sample-box"><strong>体验完整自动流程</strong><p>上传配套样卷可体验识别与解析。原卷传齐后确认，学完整科可查看演示预测卷。你也可以选本机 PDF 预览。</p>
         <a href={samplePdfUrl} download="demo-upload.pdf">下载演示 PDF</a>
         {button('选用演示 PDF',async()=>{
           try {

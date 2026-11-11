@@ -7,6 +7,8 @@ import { modelRequest } from './model-gateway.js';
 import { asTenant, lockCourseMaterial, transaction } from './db.js';
 import type { JobTarget } from './job-outbox.js';
 import { claimSchoolPrediction } from './school-prediction-reuse.js';
+import { setTenant } from './school-identity.js';
+import { predictionSources, predictionUnlocked } from './prediction-access.js';
 import { closedBookActive } from './practice.js';
 import { generatePrediction, maxEvidenceLength, minimumPaperQuestions, predictionBlueprint, predictionModel, predictionVersion, validatePrediction,
   type Evidence, type Predicted, type PredictionCall } from './prediction-model.js';
@@ -44,22 +46,11 @@ async function sources(db: Pool | PoolClient, tenant: string, course: string) {
     version: rows[0] ? digest([predictionModel, predictionVersion, rows[0].version]) : null };
 }
 
-async function waitingForPapers(db: PoolClient, tenant: string, course: string) {
-  const { rows: [row] } = await db.query<{ pending: boolean }>(`
-    SELECT EXISTS (
-      SELECT 1 FROM papers p WHERE p.tenant_id = $1 AND p.course_id = $2 AND NOT p.is_prediction AND p.model_allowed
-        AND (p.status IN ('queued', 'processing') OR EXISTS (
-          SELECT 1 FROM paper_page_recognition r WHERE (r.tenant_id, r.paper_id) = (p.tenant_id, p.id)
-            AND r.status IN ('queued', 'processing') AND r.reviewed_at IS NULL
-        ))
-    ) AS pending
-  `, [tenant, course]);
-  return row!.pending;
-}
-
 // Callers hold the course material lock while capturing the evidence version.
 export async function queueCoursePrediction(db: PoolClient, tenant: string, course: string, requireFullPaper = true) {
-  if (requireFullPaper && await waitingForPapers(db, tenant, course)) return null;
+  await setTenant(db, tenant);
+  const material = await predictionSources(db, tenant, course);
+  if (!material?.confirmed || !material.ready) return null;
   const input = await sources(db, tenant, course);
   if (!input.version || (requireFullPaper && predictionBlueprint(input.evidence).length < minimumPaperQuestions)) return null;
   await db.query(`
@@ -74,10 +65,15 @@ const security = [{ session: [] }];
 
 export function registerPredictionRoutes(app: FastifyInstance, pool: Pool, prefix: string, enabled = true, requireFullPaper = false) {
   const path = prefix + '/courses/:courseId/prediction';
-  app.get<{ Params: { courseId: string } }>(path, { schema: { params, security } }, async request => {
+  app.get<{ Params: { courseId: string } }>(path, { schema: { params, security } }, async (request, reply) => {
     const tenant = request.studySession!.id;
     const { courseId } = request.params;
     return asTenant(pool, tenant, async db => {
+      const material = await predictionSources(db, tenant, courseId);
+      if (!material) return reply.code(404).send({ code: 'COURSE_NOT_FOUND' });
+      const unlocked = await predictionUnlocked(db, tenant, courseId);
+      const access = { locked: !unlocked, sourcesConfirmed: material.confirmed, waitingForPapers: !material.ready };
+      if (!unlocked) return { enabled, ...access, questions: [], prediction: null, history: [] };
       const input = await sources(db, tenant, courseId);
       const { rows: [latest] } = await db.query(`
         SELECT id, status, source_digest, paper_id AS "paperId", failure, school_reused AS "schoolReused",
@@ -100,7 +96,7 @@ export function registerPredictionRoutes(app: FastifyInstance, pool: Pool, prefi
           SELECT id, stem, question_kind AS kind FROM paper_questions
           WHERE tenant_id = $1 AND paper_id = $2 ORDER BY created_at, id
         `, [tenant, latest.paperId])).rows : [];
-      return { enabled, questions, waitingForPapers: await waitingForPapers(db, tenant, courseId),
+      return { enabled, ...access, questions,
         targetQuestions: predictionBlueprint(input.evidence).length, minimumPaperQuestions, available: input.evidence.length, sourcePapers: new Set(input.evidence.map(item => item.paperId)).size,
         previousPaperId: latest?.paperId ? null : history[0]?.paperId ?? null, history, prediction: latest ? {
           id: latest.id, status: latest.source_digest === input.version ? latest.status : 'superseded',
@@ -109,12 +105,37 @@ export function registerPredictionRoutes(app: FastifyInstance, pool: Pool, prefi
 
     });
   });
+  app.post<{ Params: { courseId: string }; Body: { paperIds: string[] } }>(path + '/confirm-sources', {
+    schema: { params, security, body: { type: 'object', additionalProperties: false, required: ['paperIds'], properties: {
+      paperIds: { type: 'array', minItems: 1, uniqueItems: true, items: { type: 'string', format: 'uuid' } }
+    } } }
+  }, async (request, reply) => {
+    const tenant = request.studySession!.id;
+    const { courseId } = request.params;
+    const result = await asTenant(pool, tenant, async db => {
+      await lockCourseMaterial(db, tenant, courseId);
+      const material = await predictionSources(db, tenant, courseId);
+      if (!material) return 'COURSE_NOT_FOUND';
+      const confirmed = [...new Set(request.body.paperIds.map(id => id.toLowerCase()))].sort();
+      if (JSON.stringify(confirmed) !== JSON.stringify(material.paperIds)) return 'PREDICTION_SOURCES_CHANGED';
+      await db.query('UPDATE courses SET prediction_source_papers = $3 WHERE tenant_id = $1 AND id = $2',
+        [tenant, courseId, confirmed]);
+      const version = enabled ? await queueCoursePrediction(db, tenant, courseId, requireFullPaper) : null;
+      if (version) await db.query(`UPDATE predictions SET status = 'queued'
+        WHERE tenant_id = $1 AND course_id = $2 AND source_digest = $3 AND status = 'superseded'`, [tenant, courseId, version]);
+      return { sourcesConfirmed: true, waitingForPapers: !material.ready };
+    });
+    return typeof result === 'string' ? reply.code(result === 'COURSE_NOT_FOUND' ? 404 : 409).send({ code: result }) : result;
+  });
   app.post<{ Params: { courseId: string } }>(path, { schema: { params, security } }, async (request, reply) => {
     if (!enabled) return reply.code(409).send({ code: 'PREDICTION_NOT_RELEASED' });
     const tenant = request.studySession!.id;
     const { courseId } = request.params;
     const prediction = await asTenant(pool, tenant, async db => {
       await lockCourseMaterial(db, tenant, courseId);
+      const material = await predictionSources(db, tenant, courseId);
+      if (!material) return { error: 'COURSE_NOT_FOUND' };
+      if (!material.confirmed) return { error: 'PREDICTION_SOURCES_UNCONFIRMED' };
       const version = await queueCoursePrediction(db, tenant, courseId, requireFullPaper);
       if (!version) return null;
       const key = [tenant, courseId, version];
@@ -125,6 +146,7 @@ export function registerPredictionRoutes(app: FastifyInstance, pool: Pool, prefi
       `, key);
       return job;
     });
+    if (prediction && 'error' in prediction) return reply.code(prediction.error === 'COURSE_NOT_FOUND' ? 404 : 409).send({ code: prediction.error });
     return prediction ?? reply.code(409).send({ code: 'PREDICTION_NO_EVIDENCE' });
   });
 }
@@ -148,7 +170,11 @@ export async function processNextPrediction(pool: Pool, generate?: (evidence: Ev
   let questions: Predicted[] | null = null;
   let failure: string | null = null;
   let schoolReused = false;
-  const input = await sources(pool, job.tenant_id, job.course_id);
+  const input = await asTenant(pool, job.tenant_id, async db => {
+    await lockCourseMaterial(db, job.tenant_id, job.course_id);
+    const material = await predictionSources(db, job.tenant_id, job.course_id);
+    return material?.confirmed && material.ready ? sources(db, job.tenant_id, job.course_id) : { version: null, evidence: [] };
+  });
   const reuse = input.version === job.source_digest
     ? await transaction(pool, db => claimSchoolPrediction(db, job, input, sources))
     : { state: 'private' as const };
@@ -179,11 +205,14 @@ export async function processNextPrediction(pool: Pool, generate?: (evidence: Ev
   }
 
   await transaction(pool, async db => {
+    await setTenant(db, job.tenant_id);
+    await lockCourseMaterial(db, job.tenant_id, job.course_id);
     const key = [job.tenant_id, job.id, lease];
     const current = await db.query('SELECT 1 FROM predictions WHERE tenant_id=$1 AND id=$2 AND lease=$3 FOR UPDATE', key);
     if (!current.rowCount) return;
     const input = await sources(db, job.tenant_id, job.course_id);
-    const stale = input.version !== job.source_digest;
+    const material = await predictionSources(db, job.tenant_id, job.course_id);
+    const stale = input.version !== job.source_digest || !material?.confirmed || !material.ready;
     if (schoolReused && !stale) {
       const confirmed = await claimSchoolPrediction(db, job, input, sources);
       if (confirmed.state !== 'copied') {

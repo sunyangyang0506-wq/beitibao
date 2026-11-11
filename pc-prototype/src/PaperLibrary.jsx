@@ -35,6 +35,7 @@ export function PaperLibrary({ api, csrf, courses, courseId, onCourse, onExpired
   const [maxUploadMb, setMaxUploadMb] = useState(10);
   const [schoolSharing, setSchoolSharing] = useState(false);
   const [modelUploads, setModelUploads] = useState(false);
+  const [sourcesConfirmed, setSourcesConfirmed] = useState(false);
   const [modelConsent, setModelConsent] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState('');
@@ -45,6 +46,7 @@ export function PaperLibrary({ api, csrf, courses, courseId, onCourse, onExpired
 
   useEffect(() => {
     if (paperId) return;
+    setLoading(true);
     const controller = new AbortController();
     let timer;
     async function load() {
@@ -55,6 +57,7 @@ export function PaperLibrary({ api, csrf, courses, courseId, onCourse, onExpired
         setUploadMode(result.uploadMode ?? 'local');
         setMaxUploadMb(result.maxUploadMb ?? 10);
         setModelUploads(Boolean(result.modelUploads));
+        setSourcesConfirmed(Boolean(result.sourcesConfirmed));
         setSchoolSharing(Boolean(result.schoolSharingAvailable));
         if (result.papers.some(paper => paper.libraryStatus === 'recognizing' || active(paper))) timer = setTimeout(load, 1800);
       } catch (failure) {
@@ -68,6 +71,22 @@ export function PaperLibrary({ api, csrf, courses, courseId, onCourse, onExpired
     load();
     return () => { controller.abort(); clearTimeout(timer); };
   }, [api, coursePath, paperId, reload, onExpired]);
+
+  async function confirmSources() {
+    setBusy(true);
+    setError('');
+    try {
+      await api(courseBase + '/prediction/confirm-sources', { data: { paperIds: papers.map(paper => paper.id) }, csrf });
+      setSourcesConfirmed(true);
+      setReload(value => value + 1);
+    } catch (failure) {
+      if (failure.status === 401) onExpired();
+      else setError(failure.message);
+      setReload(value => value + 1);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function upload(event) {
     event.preventDefault();
@@ -159,9 +178,16 @@ export function PaperLibrary({ api, csrf, courses, courseId, onCourse, onExpired
           <option value="auto">全部试卷</option>
           {courses.map(course => <option key={course.id} value={course.id}>{course.name} · {course.term}</option>)}
         </select></label>
+        {courseId !== 'auto' && !loading && papers.length > 0 && <div className="pc-status">
+          <p>{sourcesConfirmed ? '本科目原卷已确认传齐，学完整科后解锁预测卷。'
+            : '本科目的所有原卷传齐后，请在此确认。系统将自动准备预测卷，学完整科后解锁。'}</p>
+          <button type="button" disabled={busy || sourcesConfirmed} onClick={confirmSources}>
+            {sourcesConfirmed ? '已确认原卷传齐' : '确认原卷已传齐'}
+          </button>
+        </div>}
         {loading && <p role="status">正在读取试卷…</p>}
         {!loading && !papers.length && <p>此科目还没有试卷。</p>}
-        {papers.map(paper => {
+        {!loading && papers.map(paper => {
           const state = paper.libraryStatus;
           const next = {
             recognizing: '等待系统识别科目、卷名和题干，可打开查看进度。',

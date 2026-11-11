@@ -8,9 +8,12 @@ export async function verifyQuestionVersions(pool, query, queuePool, localPool) 
   let afterCommit = null;
   const observedPool = { query: pool.query.bind(pool), connect: async () => {
     const client = await pool.connect();
+    let readAttempt = false;
     return { query: async (...args) => {
       const result = await client.query(...args);
-      if (args[0].trim() === 'COMMIT' && afterCommit) { const next = afterCommit; afterCommit = null; await next(); }
+      const sql = args[0].trim();
+      if (sql.endsWith('FROM practice_attempts WHERE tenant_id = $1 AND paper_id = $2')) readAttempt = true;
+      if (sql === 'COMMIT' && readAttempt && afterCommit) { const next = afterCommit; afterCommit = null; await next(); }
       return result;
     }, release: client.release.bind(client) };
   } };
