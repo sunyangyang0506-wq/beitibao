@@ -22,6 +22,10 @@ const figureParams = { type: 'object', required: ['paperId', 'candidate', 'figur
   figure: { type: 'integer', minimum: 0, maximum: 3 }
 } };
 const security = [{ session: [] }];
+// Explicit user-triggered retry only, after credentials/service/budget are fixed.
+// Do not turn arbitrary stored failures into permission to rerun a model.
+const recoverableImageModelFailures = ['MODEL_PAYMENT_REQUIRED', 'MODEL_SERVICE_NOT_ENABLED',
+  'MODEL_AUTHENTICATION_FAILED', 'MODEL_ACCESS_DENIED', 'MODEL_BUDGET_LIMIT', 'MODEL_NOT_CONFIGURED'];
 type FigureParams = { paperId: string; candidate: number; figure: number };
 type CandidateDocument = PaperOriginal & {
   model_allowed: boolean; recognition: Awaited<ReturnType<typeof recognizeImage>> | null;
@@ -219,16 +223,28 @@ export function registerRecognitionReview(app: FastifyInstance, pool: Pool, pref
   app.post<{ Params: { paperId: string } }>(prefix + '/papers/:paperId/retry-recognition',
     { schema: { params, security } }, async (request, reply) => {
       const tenant = request.studySession!.id;
-      const result = await asTenant(pool, tenant, db => db.query(`
+      const result = await asTenant(pool, tenant, async db => {
+        // Serialize with publication and another retry, retaining tenant ownership.
+        const paper = await db.query(
+          'SELECT 1 FROM papers WHERE tenant_id = $1 AND id = $2 AND NOT is_prediction FOR UPDATE',
+          [tenant, request.params.paperId]);
+        if (!paper.rowCount) return 'unavailable';
+        if (await closedBookActive(db, tenant, request.params.paperId)) return 'locked';
+        const queued = await db.query(`
         UPDATE papers SET status = 'queued', failure = NULL
         WHERE tenant_id = $1 AND id = $2 AND (
           (status = 'failed' AND object_key IS NOT NULL AND failure = 'PAPER_ORIGINAL_UNAVAILABLE') OR
           ($3 AND media_type IN ('image/png', 'image/jpeg') AND model_allowed AND (
-            status = 'failed' OR (status = 'review' AND object_key IS NOT NULL AND failure IN ('OCR_FAILED', 'OCR_NOT_CONFIGURED')
+            status = 'failed' OR (status = 'review' AND object_key IS NOT NULL
+              AND (failure IN ('OCR_FAILED', 'OCR_NOT_CONFIGURED') OR
+                (failure = ANY($4::text[]) AND recognition IS NULL))
               AND NOT EXISTS (SELECT 1 FROM paper_questions WHERE tenant_id = $1 AND paper_id = $2))
           )))
-      `, [tenant, request.params.paperId, privatePapers?.modelsEnabled ?? true]));
-      return result.rowCount ? reply.code(202).send({ status: 'queued' })
+      `, [tenant, request.params.paperId, privatePapers?.modelsEnabled ?? true, recoverableImageModelFailures]);
+        return queued.rowCount ? 'queued' : 'unavailable';
+      });
+      if (result === 'locked') return reply.code(409).send({ code: 'CLOSED_BOOK_ACTIVE' });
+      return result === 'queued' ? reply.code(202).send({ status: 'queued' })
         : reply.code(409).send({ code: 'RECOGNITION_UNAVAILABLE' });
     });
 
@@ -255,8 +271,8 @@ export function registerRecognitionReview(app: FastifyInstance, pool: Pool, pref
         const courseId = predictionsEnabled ? await lockPredictionSourceCourse(db, tenant, paperId) : null;
         const saved = await confirmCandidate(db, tenant, paperId, candidateIndex, stem, visualReview, modelsEnabled);
         if (saved && 'outcome' in saved && saved.pdfFigure) {
-          await publishCompletedPages(db, tenant, paperId, false, modelsEnabled);
-          if (courseId) await queueCoursePrediction(db, tenant, courseId);
+          const published = await publishCompletedPages(db, tenant, paperId, false, modelsEnabled);
+          if (published && courseId) await queueCoursePrediction(db, tenant, courseId);
         }
         return saved;
       });
@@ -343,3 +359,4 @@ async function releaseReviewedFigure(db: PoolClient, tenant: string, id: string,
     WHERE tenant_id=$1 AND question_id=$2
   `, key);
 }
+

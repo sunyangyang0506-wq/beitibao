@@ -1,3 +1,4 @@
+import { isTerminalModelFailure } from './model-provider-errors.js';
 import { resolveRecognizedCourse, type Assignment } from './subject-assignment.js';
 import { randomUUID } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
@@ -118,14 +119,22 @@ export function registerPdfPageRecognition(app: FastifyInstance, pool: Pool, pre
 
 export async function publishCompletedPages(db: PoolClient, tenant: string, paperId: string, reuseSolutions = true, queueSolutions = true) {
   const key = [tenant, paperId];
+  // All callers run in a transaction. Lock the parent first, matching worker
+  // completion/recovery, then page rows so the gate and publication are atomic.
+  // This gates this paper only; it does not cancel already-running model calls.
+  const parent = await db.query('SELECT 1 FROM papers WHERE tenant_id = $1 AND id = $2 FOR UPDATE', key);
+  if (!parent.rowCount) return false;
   const { rows } = await db.query<{
     page_number: number; reviewed_at: Date | null; status: string; failure: string | null;
     recognition: Awaited<ReturnType<typeof recognizeImage>> | null;
   }>(`SELECT r.page_number, r.reviewed_at, r.status, r.failure, r.recognition FROM paper_page_recognition r
       JOIN papers p ON (p.tenant_id, p.id) = (r.tenant_id, r.paper_id)
       WHERE r.tenant_id = $1 AND r.paper_id = $2
-      ORDER BY coalesce(array_position(p.page_order, r.page_number), r.page_number)`, key);
-  if (rows.some(row => ['queued', 'processing'].includes(row.status))) return false;
+      ORDER BY coalesce(array_position(p.page_order, r.page_number), r.page_number)
+      FOR UPDATE OF r`, key);
+  // Never let a successful sibling page or a recovery entry point bypass a
+  // terminal failure elsewhere in this paper, even if that page was reviewed.
+  if (rows.some(row => isTerminalModelFailure(row.failure ?? '') || ['queued', 'processing'].includes(row.status))) return false;
 
   const choiceOnly = rows.some(row => row.recognition?.choiceOnly);
   for (const [index, row] of rows.entries()) {
@@ -221,7 +230,7 @@ export async function processNextPageRecognition(pool: Pool, recognize = recogni
   } catch (error) {
     const code = error instanceof Error ? error.message : '';
     failure = error instanceof Error && error.name === 'TimeoutError' ? 'OCR_TIMEOUT' :
-      ['OCR_NOT_CONFIGURED', 'OCR_ACCESS_DENIED', 'MODEL_BUDGET_LIMIT', 'MODEL_RATE_LIMIT'].includes(code) ? code : 'OCR_FAILED';
+      (isTerminalModelFailure(code) || ['OCR_NOT_CONFIGURED', 'OCR_ACCESS_DENIED', 'MODEL_RATE_LIMIT'].includes(code)) ? code : 'OCR_FAILED';
   }
   await transaction(pool, async db => {
     const key = [job.tenant_id, job.paper_id];
@@ -288,7 +297,7 @@ export async function processNextPageRecognition(pool: Pool, recognize = recogni
           [...key, rows.map(({ page }) => page)]);
       }
     }
-    if (autoPublish) {
+    if (autoPublish && !isTerminalModelFailure(failure ?? '')) {
       if (job.page_number === 1 && recognition?.paperTitle) {
         await db.query('UPDATE papers SET title = $3 WHERE tenant_id = $1 AND id = $2 AND auto_title',
           [...key, recognition.paperTitle]);
@@ -299,3 +308,4 @@ export async function processNextPageRecognition(pool: Pool, recognize = recogni
   }).catch(error => { if (!(error instanceof Error) || error.message !== 'STALE_RECOGNITION_LEASE') throw error; });
   return true;
 }
+
