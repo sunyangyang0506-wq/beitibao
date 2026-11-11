@@ -57,7 +57,7 @@ GRANT SELECT, INSERT, DELETE ON model_rate_events TO :"worker_role";
   GRANT UPDATE (page_order, missing_pages, review_revision, title, course_id, recognized_subject) ON papers TO :"worker_role";
   GRANT SELECT, UPDATE (subject_key) ON school_paper_index TO :"worker_role";
   GRANT UPDATE (school_reuse) ON papers TO :"worker_role";
-  GRANT SELECT, INSERT, UPDATE (solution_status, source_pages, model_solution, standalone_solution) ON paper_questions TO :"worker_role";
+  GRANT SELECT, INSERT, UPDATE (solution_status, source_pages, model_solution, standalone_solution, reference) ON paper_questions TO :"worker_role";
   GRANT INSERT ON predictions TO :"worker_role";
   DROP POLICY IF EXISTS prediction_release_page ON predictions;
   CREATE POLICY prediction_release_page ON predictions FOR INSERT TO :"worker_role" WITH CHECK (true);

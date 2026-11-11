@@ -16,7 +16,7 @@ test('sends the selected image to the pinned model and rejects incomplete output
       content: JSON.stringify({ questions: [{ stem: ' 题干 ', visualContext: ' A → B，权重 3 ' }] })
     } }] });
   });
-  assert.deepEqual(output, { model: 'qwen3.5-flash-2026-02-23', promptVersion: 'image-questions-v24', stems: ['题干'], visualContexts: ['A → B，权重 3'], questionBoxes: [null],
+  assert.deepEqual(output, { model: 'qwen3.5-flash-2026-02-23', promptVersion: 'image-questions-v25', stems: ['题干'], visualContexts: ['A → B，权重 3'], questionBoxes: [null],
     figures: [[{ box: null, initial: null, reread: null, status: 'needs_review', reason: 'location' }]], resolvedContexts: [''] });
   await assert.rejects(recognizeImage(image, 'image/png', async () =>
     Response.json({ choices: [{ finish_reason: 'length' }] })), /OCR_INVALID_OUTPUT/);

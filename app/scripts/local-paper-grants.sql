@@ -4,7 +4,7 @@ GRANT USAGE ON SCHEMA public TO :"worker_role";
 GRANT SELECT, UPDATE (status, pages, failure, lease_id, lease_until, recognition) ON papers TO :"worker_role";
 DROP POLICY IF EXISTS papers_local_worker ON papers;
 CREATE POLICY papers_local_worker ON papers TO :"worker_role" USING (true) WITH CHECK (true);
-GRANT SELECT, INSERT, UPDATE (source_pages, solution_status, model_solution, solution_lease, solution_lease_until, solution_failure, solution_finished_at, solution_attempt_count) ON paper_questions TO :"worker_role";
+GRANT SELECT, INSERT, UPDATE (source_pages, reference, solution_status, model_solution, solution_lease, solution_lease_until, solution_failure, solution_finished_at, solution_attempt_count) ON paper_questions TO :"worker_role";
 DROP POLICY IF EXISTS solutions_local_worker ON paper_questions;
 CREATE POLICY solutions_local_worker ON paper_questions TO :"worker_role" USING (true) WITH CHECK (true);
 GRANT SELECT, INSERT ON paper_model_cache TO :"worker_role";

@@ -69,12 +69,13 @@ export function reconcilePracticeResult(saved: StoredPracticeResult, current: Cu
 // submitted after the question was corrected. It cannot acquire a newer answer.
 export const practiceSolutionSources = `
   SELECT q.id,q.paper_id,q.stem,q.input_revision,q.visual_review,q.question_kind,q.reference,q.model_solution,q.solution_status
-  FROM paper_questions q WHERE q.tenant_id=$1
+  FROM paper_questions q WHERE q.tenant_id=$1 AND NOT q.figure_review_blocked
   UNION ALL
   SELECT h.question_id,(h.question->>'paper_id')::uuid,h.question->>'stem',h.input_revision,
     h.question->>'visual_review',h.question->>'question_kind',nullif(h.question->'reference','null'::jsonb),
     nullif(h.question->'model_solution','null'::jsonb),h.question->>'solution_status'
   FROM question_revision_history h WHERE h.tenant_id=$1
+    AND NOT coalesce((h.question->>'figure_review_blocked')::boolean, false)
 `;
 
 export async function refreshPracticeResults(db: PoolClient, tenant: string, filter: { paperId?: string; questionId?: string } = {}) {

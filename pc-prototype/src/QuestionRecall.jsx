@@ -42,6 +42,7 @@ export function QuestionRecall({ papers, api, csrf, onExpired, onBack, onMistake
     }
   }
 
+  const activeQuestions = questions.filter(question => question.kind === activeKind && activePapers.includes(question.paperId));
   return <main className="content">
     <button onClick={onBack}>返回练习列表</button>
     <div className="intro pc-review-title"><h1>按题型背诵</h1><p>按题型选择同科原卷</p></div>
@@ -61,10 +62,32 @@ export function QuestionRecall({ papers, api, csrf, onExpired, onBack, onMistake
             ? [...selected, paper.id] : selected.filter(id => id !== paper.id))} />{paper.title}</label>)}
       <button disabled={!kind || !selected.length || busy} onClick={start}>开始背诵</button>
       {error && <p role="alert">{error}</p>}
-      {questions.filter(question => question.kind === activeKind && activePapers.includes(question.paperId)).map(question => <RecallQuestion key={question.id}
-        question={question} path={'/papers/' + question.paperId + '/questions/' + question.id} api={api} csrf={csrf} onExpired={onExpired} onMistakes={onMistakes} />)}
+      {activeQuestions.length > 0 && <RecallSequence key={activeKind + ':' + activePapers.join(',')}
+        questions={activeQuestions} api={api} csrf={csrf} onExpired={onExpired} onMistakes={onMistakes} />}
     </section>
   </main>;
+}
+
+export function RecallSequence({ questions, api, csrf, onExpired, onMistakes }) {
+  const [currentId, setCurrentId] = useState(null);
+  const index = Math.max(0, questions.findIndex(question => question.id === currentId));
+  const question = questions[index];
+  const path = '/papers/' + question.paperId;
+  return <div>
+    <div className="pc-dialog-actions">
+      <button type="button" disabled={index === 0} onClick={() => setCurrentId(questions[index - 1].id)}>上一题</button>
+      <span role="status">第 {index + 1} / {questions.length} 题</span>
+      <button type="button" disabled={index === questions.length - 1} onClick={() => setCurrentId(questions[index + 1].id)}>下一题</button>
+    </div>
+    <RecallQuestion key={question.id + ':' + (question.inputRevision ?? 1)} question={question}
+      path={path + '/questions/' + question.id} api={api} csrf={csrf} onExpired={onExpired} onMistakes={onMistakes} />
+    <details><summary>查看本题原卷</summary>{(question.sourcePages?.length ? question.sourcePages : [question.pageNumber]).map(page =>
+      <a key={page} href={'/api/v1' + path + '/pages/' + page} target="_blank" rel="noreferrer">原文件第 {page} 页 </a>)}</details>
+  </div>;
+}
+
+export function referenceLabel(source) {
+  return ({ teacher: '教师提供', paper: '原卷答案', paper_ocr: '原卷答案待核对' })[source] ?? '已核验';
 }
 
 export function RecallQuestion({ question, path, api, csrf, onExpired, onAssessed, onMistakes }) {
@@ -81,6 +104,21 @@ export function RecallQuestion({ question, path, api, csrf, onExpired, onAssesse
     try {
       if (retry) await api(path + '/solution', { data: {}, csrf });
       setResult(await api(path + '/reveal', { data: {}, csrf }));
+    } catch (failure) {
+      if (failure.status === 401) onExpired();
+      else setError(failure.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmPrintedAnswer() {
+    setBusy(true);
+    setError('');
+    const { kind, answers, explanation } = result.reference;
+    try {
+      const saved = await api(path + '/reference', { data: { kind, answers, explanation, source: 'verified', confirmPrinted: true }, csrf });
+      setResult(current => ({ ...current, reference: saved.reference }));
     } catch (failure) {
       if (failure.status === 401) onExpired();
       else setError(failure.message);
@@ -133,12 +171,19 @@ export function RecallQuestion({ question, path, api, csrf, onExpired, onAssesse
     {result && <>
       {stemCorrection && <p>当前为个人修订版本，答案按此版本重新生成。</p>}
       {result.modelSolution && <KnowledgePoints points={result.modelSolution.knowledgePoints} />}
-      {result.reference && <div><strong>已核验答案</strong><PaperText text={result.reference.answers.join('、')} /><PaperText text={result.reference.explanation ?? ''} /></div>}
+      {result.reference && <div>
+        <strong>{referenceLabel(result.reference.source)}</strong>
+        <PaperText text={result.reference.answers.join('、')} />
+        <PaperText text={result.reference.explanation ?? ''} />
+        {result.reference.sourcePage && <a href={'/api/v1' + path.split('/questions/')[0] + '/pages/' + result.reference.sourcePage}
+          target="_blank" rel="noreferrer">查看答案原页</a>}
+        {result.reference.source === 'paper_ocr' && <button type="button" disabled={busy} onClick={confirmPrintedAnswer}>确认与原页一致</button>}
+      </div>}
       {result.modelSolution ? <div className="pc-confirmed-stem">
         <strong>{result.modelSolution.status === 'solved' ? '模型参考答案与解析' : '模型无法确定答案'}</strong>
         {result.modelSolution.answer && <PaperText text={result.modelSolution.answer} />}
         <PaperText text={result.modelSolution.explanation ?? ''} />
-      </div> : <p>{result.solutionStatus === 'failed' ? '生成失败。' : '正在生成知识点、参考答案和解析…'}</p>}
+      </div> : result.solutionStatus && <p>{result.solutionStatus === 'failed' ? '生成失败。' : '正在生成知识点、参考答案和解析…'}</p>}
       <div className="pc-dialog-actions">
         {Object.entries({ mastered: '能独立说出', partial: '漏了部分', needs_practice: '还想不起来' }).map(([rating, label]) =>
           <button key={rating} disabled={busy} aria-pressed={result.selfRating === rating} onClick={() => assess(rating)}>{label}</button>)}

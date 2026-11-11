@@ -64,4 +64,4 @@ GRANT UPDATE (graded, solution_snapshots) ON practice_history TO :"app_role";
 GRANT UPDATE (assignment_reason) ON papers TO :"app_role";
 
 -- Recover validated legacy PDF recognition with original cross-page provenance.
-GRANT UPDATE (source_pages) ON paper_questions TO :"app_role";
+GRANT UPDATE (source_pages, visual_review, figure_review_blocked) ON paper_questions TO :"app_role";

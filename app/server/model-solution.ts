@@ -95,10 +95,10 @@ export async function solveQuestion(stem: string, request = fetch, image?: Solut
 
 export async function processNextSolution(pool: Pool, solve = solveQuestion, storage?: PaperStorage, target?: JobTarget) {
   const lease = randomUUID();
-  const { rows: [question] } = await pool.query<{ tenant_id: string; id: string; stem: string; input_revision: number; question_kind: string; cache_key: string | null; paper_id: string; page_number: number; source_pages: number[]; visual_review: string | null; solution_attempt_count: number; school_standalone: boolean; school_needs_image: boolean }>(`
+  const { rows: [question] } = await pool.query<{ tenant_id: string; id: string; stem: string; input_revision: number; question_kind: string; cache_key: string | null; paper_id: string; page_number: number; source_pages: number[]; visual_review: string | null; solution_attempt_count: number; school_standalone: boolean; figure_context: string | null }>(`
     WITH next AS (
       SELECT q.tenant_id, q.id FROM paper_questions q
-      WHERE (solution_status = 'queued' OR (solution_status = 'processing' AND solution_lease_until <= now()))
+      WHERE NOT q.figure_review_blocked AND (solution_status = 'queued' OR (solution_status = 'processing' AND solution_lease_until <= now()))
         AND EXISTS (SELECT 1 FROM papers p WHERE (p.tenant_id, p.id) = (q.tenant_id, q.paper_id) AND p.model_allowed)
         AND ($2::uuid IS NULL OR (q.tenant_id, q.id) = ($2, $3::uuid))
       ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1
@@ -113,13 +113,13 @@ export async function processNextSolution(pool: Pool, solve = solveQuestion, sto
         WHERE r.tenant_id=q.tenant_id AND r.paper_id=q.paper_id AND r.page_number=q.page_number
           AND p.school_page_hashes IS NOT NULL AND r.original_recognition->'standaloneStems' ? q.stem
       ) AS school_standalone,
-      EXISTS (
-        SELECT 1 FROM paper_page_recognition r JOIN papers p ON (p.tenant_id,p.id)=(r.tenant_id,r.paper_id)
+      (SELECT nullif(r.recognition->'resolvedContexts'->>(candidate.n::int-1), '')
+        FROM paper_page_recognition r
         CROSS JOIN LATERAL jsonb_array_elements_text(r.recognition->'stems') WITH ORDINALITY AS candidate(stem, n)
-        CROSS JOIN LATERAL jsonb_array_elements(r.recognition->'figures'->(candidate.n::int-1)) AS figure
         WHERE r.tenant_id=q.tenant_id AND r.paper_id=q.paper_id AND r.page_number=q.page_number
-          AND p.school_page_hashes IS NOT NULL AND candidate.stem=q.stem AND figure->>'status'='needs_review'
-      ) AS school_needs_image
+          AND q.input_revision=1 AND btrim(candidate.stem)=q.stem
+        ORDER BY candidate.n LIMIT 1
+      ) AS figure_context
   `, [lease, target?.tenant ?? null, target?.id ?? null]);
   if (!question) return false;
   let solution = null;
@@ -127,7 +127,7 @@ export async function processNextSolution(pool: Pool, solve = solveQuestion, sto
   let standaloneSolution = false;
   let originalImagePages: number[] = [];
   try {
-    if (question.input_revision === 1 && question.cache_key && !question.visual_review && !question.school_needs_image) {
+    if (question.input_revision === 1 && question.cache_key && !question.visual_review && !question.figure_context) {
       const { rows: [cached] } = await asTenant(pool, question.tenant_id, db =>
         db.query<{ solutions: (Awaited<ReturnType<typeof solveQuestion>> & { stem: string })[] }>(
           'SELECT solutions FROM paper_model_cache WHERE cache_key = $1', [question.cache_key]));
@@ -141,11 +141,12 @@ export async function processNextSolution(pool: Pool, solve = solveQuestion, sto
         SELECT pdf, media_type, object_key, object_version, object_bytes, pages FROM papers
         WHERE tenant_id = $1 AND id = $2
       `, [question.tenant_id, question.paper_id]);
-      const stem = question.visual_review ? `${question.stem}\n[人工核对的图表资料] ${question.visual_review}` : question.stem;
+      const stem = question.visual_review ? `${question.stem}\n[人工核对的图表资料] ${question.visual_review}`
+        : question.figure_context ? `${question.stem}\n[整页及裁片一致的图表资料] ${question.figure_context}` : question.stem;
       const request = modelRequest(pool, question.tenant_id, 'solution');
       const pdf = original?.media_type === 'application/pdf';
       const hasOptions = /(?:^|\s)A[.．、)]/u.test(stem) && /(?:^|\s)D[.．、)]/u.test(stem);
-      const needsImage = question.school_needs_image || Boolean(question.visual_review) || /(?:如图|下图|右图|见图|图[\s\d]|下表|表中|图中)/u.test(stem) ||
+      const needsImage = Boolean(question.figure_context || question.visual_review) || /(?:如图|下图|右图|见图|图[\s\d]|下表|表中|图中)/u.test(stem) ||
         (!hasOptions && /[（(]\s*[）)]\s*[。．.]?$/u.test(stem)) || !hasOptions && /\([1-9]\)/u.test(stem);
       const text = original?.pages?.filter(Boolean).join('\n\n') ?? '';
       const standalone = question.school_standalone && !needsImage && !question.source_pages.length &&

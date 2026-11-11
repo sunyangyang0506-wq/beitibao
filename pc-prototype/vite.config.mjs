@@ -4,6 +4,8 @@ import react from "@vitejs/plugin-react";
 export default defineConfig(({ mode }) => ({
   build: {
     outDir: "dist/client",
+    // The connected app serves fonts from the same origin under its CSP.
+    assetsInlineLimit: filePath => /\.(?:woff2?|ttf|otf)$/iu.test(filePath) ? false : undefined,
   },
   optimizeDeps: {
     include: ["react", "react-dom/client"],

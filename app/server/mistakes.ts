@@ -51,7 +51,7 @@ async function submittedQuestions(db: PoolClient, tenant: string, questionId?: s
       a.answers ->> (q.value ->> 'id') AS "originalAnswer",
       coalesce(eq.anchor_id, pq.id) AS "logicalId",
       coalesce(q.value ->> 'kind', pq.question_kind) AS kind,
-      (pq.stem IS DISTINCT FROM (q.value ->> 'stem')
+      (pq.figure_review_blocked OR pq.stem IS DISTINCT FROM (q.value ->> 'stem')
         OR pq.visual_review IS DISTINCT FROM (q.value ->> 'visualReview')
         OR (q.value ? 'kind' AND pq.question_kind IS DISTINCT FROM (q.value ->> 'kind'))
         OR pq.input_revision<>coalesce((q.value->>'inputRevision')::int,1)
@@ -118,7 +118,7 @@ export function registerMistakeRoutes(app: FastifyInstance, pool: Pool, prefix: 
         JOIN papers p ON (p.tenant_id,p.id) = (q.tenant_id,q.paper_id)
         JOIN courses c ON (c.tenant_id,c.id) = (p.tenant_id,p.course_id)
         LEFT JOIN current_question_equivalence eq ON (eq.tenant_id,eq.member_id) = (q.tenant_id,q.id)
-        WHERE r.tenant_id = $1 AND (r.bookmarked OR r.had_recall_difficulty) AND NOT p.is_prediction
+        WHERE r.tenant_id = $1 AND (r.bookmarked OR r.had_recall_difficulty) AND NOT p.is_prediction AND NOT q.figure_review_blocked
           AND NOT EXISTS (SELECT 1 FROM practice_attempts active WHERE active.tenant_id=q.tenant_id AND active.paper_id=q.paper_id AND active.submitted_at IS NULL)
         ORDER BY c.name, p.title, q.page_number, q.id
       `, [tenant]);

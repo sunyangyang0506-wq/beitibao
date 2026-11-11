@@ -17,7 +17,7 @@ export async function predictionSources(db: PoolClient, tenant: string, courseId
     CROSS JOIN LATERAL (
       SELECT coalesce(array_agg(p.id ORDER BY p.id), '{}'::uuid[]) AS ids,
         bool_and(p.status = 'review' AND NOT p.missing_pages AND EXISTS (
-          SELECT 1 FROM paper_questions q WHERE (q.tenant_id,q.paper_id) = (p.tenant_id,p.id)
+          SELECT 1 FROM paper_questions q WHERE (q.tenant_id,q.paper_id) = (p.tenant_id,p.id) AND NOT q.figure_review_blocked
         ) AND NOT EXISTS (
           SELECT 1 FROM paper_page_recognition r
           WHERE (r.tenant_id,r.paper_id) = (p.tenant_id,p.id) AND r.reviewed_at IS NULL

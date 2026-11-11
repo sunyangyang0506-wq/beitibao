@@ -6,12 +6,13 @@ import { imagePromptVersion, type recognizeImage } from './image-recognition.js'
 import { schoolRenderVersion, schoolPageFingerprints } from './paper-parser.js';
 import { schoolOf, setTenant, subjectKey } from './school-identity.js';
 import { solutionPromptVersion } from './model-solution.js';
+import type { QuestionReference } from './question-reference.js';
 
 type Recognition = Awaited<ReturnType<typeof recognizeImage>>;
 type Solution = { status?: string; answer?: string; explanation?: string; knowledgePoints?: string[]; promptVersion?: string; originalImagePages?: number[] };
 type Page = { page_number: number; status: string; reviewed_at: Date | null; recognition: Recognition | null; original_recognition: Recognition | null };
 type Question = { input_revision: number; page_number: number; fingerprint: string; stem: string; question_kind: string; source_pages: number[];
-  model_solution: Solution | null; solution_status: string | null; standalone_solution: boolean; reference: unknown; visual_review: string | null };
+  model_solution: Solution | null; solution_status: string | null; standalone_solution: boolean; reference: QuestionReference | null; visual_review: string | null };
 type Source = {
   id: string; tenant_id: string; paper_id: string; file_hash: string; page_hashes: string[]; subject_key: string | null; content_key: string; created_at: Date;
   course_id: string | null; recognized_subject: string | null; page_order: number[] | null; status: string; missing_pages: boolean;
@@ -60,7 +61,7 @@ async function readSource(db: PoolClient, source: Source, recipient: string) {
 function completePage(page: Page, original = false) {
   const result = original ? page.original_recognition : page.recognition;
   return page.status === 'review' && Boolean(page.reviewed_at && result?.promptVersion === imagePromptVersion &&
-    (!original || !result.figures?.some(figures => figures.some(figure => figure.status === 'needs_review'))));
+    !result.figures?.some(figures => figures.some(figure => figure.status === 'needs_review')));
 }
 
 function usableSolution(solution: Solution | null) {
@@ -75,7 +76,8 @@ function samePageIndexes(source: Source, hashes: string[]) {
 function readyOriginal(source: Source, material: Awaited<ReturnType<typeof readSource>>) {
   if (source.status !== 'review' || source.missing_pages || material.pages.length !== source.page_hashes.length ||
       !material.pages.every(page => completePage(page)) || !material.questions.length ||
-      material.questions.some(question => question.input_revision > 1 || question.reference || question.visual_review)) return false;
+      material.questions.some(question => question.input_revision > 1 || question.visual_review ||
+        (question.reference && !['paper', 'paper_ocr'].includes(question.reference.source)))) return false;
   return material.pages.every(page => {
     const stems = new Set(page.recognition?.stems ?? []);
     const questions = material.questions.filter(question => question.page_number === page.page_number);
@@ -118,15 +120,16 @@ async function copyOriginal(db: PoolClient, target: Target, source: Source, mate
       [source.tenant_id, source.paper_id, JSON.stringify(text)])).rows[0]?.same;
   await db.query(`
     INSERT INTO paper_questions (tenant_id,paper_id,page_number,fingerprint,stem,question_kind,source_pages,
-      model_solution,solution_status,standalone_solution,created_at)
+      model_solution,solution_status,standalone_solution,reference,created_at)
     SELECT $1,$2,(q->>'page_number')::int,q->>'fingerprint',q->>'stem',q->>'question_kind',
       ARRAY(SELECT jsonb_array_elements_text(q->'source_pages')::int),
-      nullif(q->'model_solution','null'::jsonb),q->>'solution_status',(q->>'standalone_solution')::boolean,
+      nullif(q->'model_solution','null'::jsonb),q->>'solution_status',(q->>'standalone_solution')::boolean,nullif(q->'reference','null'::jsonb),
       statement_timestamp() + ord * interval '1 microsecond'
     FROM jsonb_array_elements($3::jsonb) WITH ORDINALITY AS item(q,ord)
   `, [target.tenant_id, target.id, JSON.stringify(material.questions.map(question => {
     const solution = (sameTextContext || question.standalone_solution) && usableSolution(question.model_solution) ? question.model_solution : null;
-    return { ...question, model_solution: solution, solution_status: solution ? 'ready' : modelsEnabled ? 'queued' : null,
+    const reference = sameTextContext || question.reference?.source === 'paper_ocr' ? question.reference : null;
+    return { ...question, reference, model_solution: solution, solution_status: solution ? 'ready' : modelsEnabled ? 'queued' : null,
       standalone_solution: Boolean(solution && question.standalone_solution) };
   }))]);
   return paper!.course_id;

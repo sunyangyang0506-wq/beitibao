@@ -8,7 +8,9 @@ import { closedBookActive } from './practice.js';
 import { asTenant, lockCourseMaterial } from './db.js';
 import { choiceOptionCount, completeChoiceStem } from './paper-choices.js';
 import { renderPage } from './paper-parser.js';
-import { candidatesPerPage, pdfRecognitionSize } from './pdf-page-recognition.js';
+import { candidatesPerPage, pdfFigureSize, publishCompletedPages } from './pdf-page-recognition.js';
+import { lockPredictionSourceCourse } from './prediction-access.js';
+import { queueCoursePrediction } from './predictions.js';
 import { loadPaperOriginal, type PaperOriginal, type PaperStorage } from './paper-storage.js';
 import type { PrivatePapers } from './paper-uploads.js';
 
@@ -44,7 +46,7 @@ async function loadCandidate(db: PoolClient, tenant: string, paperId: string, ca
 
 async function originalImage(source: CandidateSource, storage?: PaperStorage) {
   const bytes = await loadPaperOriginal(source, storage);
-  return isImageType(source.media_type) ? bytes : renderPage(bytes, source.page, pdfRecognitionSize);
+  return isImageType(source.media_type) ? bytes : renderPage(bytes, source.page, pdfFigureSize);
 }
 
 async function updateFigure(db: PoolClient, tenant: string, { paperId, figure }: FigureParams,
@@ -247,12 +249,22 @@ export function registerRecognitionReview(app: FastifyInstance, pool: Pool, pref
       if (stem === '' || stem?.includes('\u0000') || visualReview === '' || visualReview?.includes('\u0000')) {
         return reply.code(400).send({ code: 'INVALID_QUESTION' });
       }
-      const result = await asTenant(pool, tenant, db => confirmCandidate(db, tenant, paperId, candidateIndex, stem, visualReview, privatePapers?.modelsEnabled ?? localModelPreview));
+      const modelsEnabled = privatePapers?.modelsEnabled ?? localModelPreview;
+      const predictionsEnabled = privatePapers?.predictionsEnabled ?? localModelPreview;
+      const result = await asTenant(pool, tenant, async db => {
+        const courseId = predictionsEnabled ? await lockPredictionSourceCourse(db, tenant, paperId) : null;
+        const saved = await confirmCandidate(db, tenant, paperId, candidateIndex, stem, visualReview, modelsEnabled);
+        if (saved && 'outcome' in saved && saved.pdfFigure) {
+          await publishCompletedPages(db, tenant, paperId, false, modelsEnabled);
+          if (courseId) await queueCoursePrediction(db, tenant, courseId);
+        }
+        return saved;
+      });
       if (!result) return reply.code(404).send({ code: 'RECOGNITION_UNAVAILABLE' });
       if ('locked' in result) return reply.code(409).send({ code: 'CLOSED_BOOK_ACTIVE' });
       if ('visualPending' in result) return reply.code(409).send({ code: 'FIGURE_REVIEW_REQUIRED' });
       if ('conflict' in result) return reply.code(409).send({ code: 'REVIEW_ALREADY_SAVED' });
-      return result;
+      return { outcome: result.outcome };
     });
 }
 
@@ -272,25 +284,33 @@ async function confirmCandidate(db: PoolClient, tenant: string, paperId: string,
   if (existing) return existing.reviewed_stem === stem && existing.visual_review === visualReview
     ? { outcome: existing.outcome } : { conflict: true };
   if (source.reviewed_at) return { conflict: true };
-  if (stem !== null && recognition.figures?.[source.index]?.some(figure => figure.status === 'needs_review') && !visualReview) {
+  const pdfFigure = source.media_type === 'application/pdf' && (await db.query<{ pending: boolean }>(
+    'SELECT pdf_figure_pending($1::jsonb, $2) AS pending', [JSON.stringify(recognition), source.index])).rows[0]?.pending;
+  if (stem !== null && !visualReview &&
+      (pdfFigure || recognition.figures?.[source.index]?.some(figure => figure.status === 'needs_review'))) {
     return { visualPending: true };
   }
   let questionId = null;
   if (stem !== null) {
     const fingerprint = createHash('sha256').update(stem).digest('hex');
     const { rows: [question] } = await db.query(`
-      INSERT INTO paper_questions (tenant_id, paper_id, page_number, fingerprint, stem, visual_review, solution_status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO paper_questions (tenant_id, paper_id, page_number, fingerprint, stem, visual_review, solution_status, question_kind)
+      VALUES ($1, $2, $3, $4, $5, $6, $7,
+        CASE WHEN $8 AND $5 ~* '(^|[[:space:]])A[.、．)]' AND $5 ~* '(^|[[:space:]])B[.、．)]' THEN 'choice'
+          WHEN $8 AND $5 ~ '计算|求出|求值|求其|求下列' THEN 'calculation'
+          WHEN $8 AND $5 ~ '____' THEN 'fill' ELSE 'other' END)
       ON CONFLICT (tenant_id, paper_id, page_number, fingerprint) DO NOTHING RETURNING id
     `, [tenant, paperId, source.page, fingerprint, stem, visualReview,
-      modelsEnabled && source.model_allowed ? 'queued' : null]);
+      modelsEnabled && source.model_allowed ? 'queued' : null, Boolean(pdfFigure)]);
     if (question) questionId = question.id;
     else {
       const { rows: [saved] } = await db.query(`
-        SELECT id, visual_review FROM paper_questions WHERE tenant_id = $1 AND paper_id = $2
-          AND page_number = $3 AND fingerprint = $4
+        SELECT id, visual_review, figure_review_blocked FROM paper_questions WHERE tenant_id = $1 AND paper_id = $2
+          AND page_number = $3 AND fingerprint = $4 FOR UPDATE
       `, [tenant, paperId, source.page, fingerprint]);
-      if (visualReview !== saved.visual_review) return { conflict: true };
+      if (saved.figure_review_blocked && pdfFigure && visualReview) {
+        await releaseReviewedFigure(db, tenant, saved.id, stem, visualReview, modelsEnabled && source.model_allowed);
+      } else if (visualReview !== saved.visual_review) return { conflict: true };
       questionId = saved.id;
     }
   }
@@ -300,5 +320,26 @@ async function confirmCandidate(db: PoolClient, tenant: string, paperId: string,
       (tenant_id, paper_id, candidate_index, model, prompt_version, original_stem, reviewed_stem, outcome, question_id)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
   `, [...key, recognition.model, recognition.promptVersion, original, stem, outcome, questionId]);
-  return { outcome };
+  return { outcome, pdfFigure };
+}
+
+async function releaseReviewedFigure(db: PoolClient, tenant: string, id: string, stem: string,
+  visualReview: string, modelsEnabled: boolean) {
+  const key = [tenant, id];
+  await db.query(`
+    INSERT INTO question_revision_history (tenant_id, question_id, input_revision, question, recall)
+    SELECT q.tenant_id, q.id, q.input_revision, to_jsonb(q), to_jsonb(r)
+    FROM paper_questions q LEFT JOIN question_recall r ON (r.tenant_id,r.question_id)=(q.tenant_id,q.id)
+    WHERE q.tenant_id=$1 AND q.id=$2
+  `, key);
+  await db.query(`
+    UPDATE paper_questions SET figure_review_blocked=false, stem=$3, visual_review=$4, input_revision=input_revision+1,
+      reference=NULL, model_solution=NULL, solution_status=$5, solution_lease=NULL, solution_lease_until=NULL,
+      solution_attempt_count=0, solution_failure=NULL, solution_finished_at=NULL, standalone_solution=false
+    WHERE tenant_id=$1 AND id=$2
+  `, [...key, stem, visualReview, modelsEnabled ? 'queued' : null]);
+  await db.query(`
+    UPDATE question_recall SET revealed=false, self_rating=NULL, assessed_revision=NULL, correction=NULL, stem_correction=NULL
+    WHERE tenant_id=$1 AND question_id=$2
+  `, key);
 }

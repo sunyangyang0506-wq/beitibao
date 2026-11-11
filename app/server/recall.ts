@@ -34,7 +34,7 @@ export function registerRecallRoutes(app: FastifyInstance, pool: Pool, prefix: s
     const { paperId, questionId } = request.params;
     const tenant = request.studySession!.id;
     const saved = await asTenant(pool, tenant, db => db.query(`
-      UPDATE paper_questions SET question_kind = $4 WHERE tenant_id = $1 AND paper_id = $2 AND id = $3
+      UPDATE paper_questions SET question_kind = $4 WHERE tenant_id = $1 AND paper_id = $2 AND id = $3 AND NOT figure_review_blocked
     `, [tenant, paperId, questionId, request.body.kind]));
     return saved.rowCount ? { kind: request.body.kind } : reply.code(404).send({ code: 'PAPER_NOT_FOUND' });
   });
@@ -47,7 +47,7 @@ export function registerRecallRoutes(app: FastifyInstance, pool: Pool, prefix: s
     const tenant = request.studySession!.id;
     const result = await asTenant(pool, tenant, db => db.query(`
       UPDATE paper_questions SET solution_status = 'queued'
-      WHERE tenant_id = $1 AND paper_id = $2 AND question_kind = $3 AND solution_status IS NULL
+      WHERE tenant_id = $1 AND paper_id = $2 AND question_kind = $3 AND solution_status IS NULL AND NOT figure_review_blocked
         AND EXISTS (SELECT 1 FROM papers WHERE tenant_id = $1 AND id = $2 AND model_allowed)
     `, [tenant, request.params.paperId, request.body.kind]));
     return { queued: result.rowCount };
@@ -58,11 +58,12 @@ export function registerRecallRoutes(app: FastifyInstance, pool: Pool, prefix: s
       const tenant = request.studySession!.id;
       const { paperId, questionId } = request.params;
       const result = await asTenant(pool, tenant, async db => {
+        await db.query('SELECT 1 FROM papers WHERE tenant_id=$1 AND id=$2 FOR SHARE', [tenant, paperId]);
         if (await closedBookActive(db, tenant, paperId)) return { locked: true };
         const key = [tenant, paperId, questionId];
         const { rows: [question] } = await db.query(`
           SELECT input_revision AS "inputRevision", reference, model_solution AS "modelSolution", solution_status AS "solutionStatus"
-          FROM paper_questions WHERE tenant_id = $1 AND paper_id = $2 AND id = $3
+          FROM paper_questions WHERE tenant_id = $1 AND paper_id = $2 AND id = $3 AND NOT figure_review_blocked
         `, key);
         if (!question) return null;
         await db.query(`
@@ -99,7 +100,7 @@ export function registerRecallRoutes(app: FastifyInstance, pool: Pool, prefix: s
       const saved = await asTenant(pool, tenant, db => db.query(`
         INSERT INTO question_recall (tenant_id, question_id, correction)
         SELECT q.tenant_id, q.id, $4::jsonb FROM paper_questions q
-        WHERE q.tenant_id = $1 AND q.paper_id = $2 AND q.id = $3 AND (
+        WHERE q.tenant_id = $1 AND q.paper_id = $2 AND q.id = $3 AND NOT q.figure_review_blocked AND (
           EXISTS (SELECT 1 FROM question_recall r WHERE r.tenant_id = q.tenant_id AND r.question_id = q.id AND r.revealed)
           OR EXISTS (SELECT 1 FROM practice_attempts a WHERE a.tenant_id = q.tenant_id AND a.paper_id = q.paper_id
             AND a.submitted_at IS NOT NULL AND a.questions @> jsonb_build_array(jsonb_build_object('id', q.id)))
@@ -125,7 +126,7 @@ export function registerRecallRoutes(app: FastifyInstance, pool: Pool, prefix: s
             THEN statement_timestamp() ELSE r.last_mistake_at END
         FROM paper_questions q
         WHERE (q.tenant_id, q.id) = (r.tenant_id, r.question_id)
-          AND r.tenant_id = $1 AND q.paper_id = $2 AND r.question_id = $3 AND r.revealed AND q.input_revision=$5
+          AND r.tenant_id = $1 AND q.paper_id = $2 AND r.question_id = $3 AND r.revealed AND q.input_revision=$5 AND NOT q.figure_review_blocked
         RETURNING self_rating AS "selfRating"
       `, [tenant, paperId, questionId, request.body.rating, request.body.inputRevision ?? 1]));
       return result ?? reply.code(404).send({ code: 'PAPER_NOT_FOUND' });
@@ -139,7 +140,7 @@ export function registerRecallRoutes(app: FastifyInstance, pool: Pool, prefix: s
       const { rows: [result] } = await asTenant(pool, tenant, db => db.query(`
         INSERT INTO question_recall (tenant_id, question_id, bookmarked, mistake_recorded_at)
         SELECT tenant_id, id, $4, CASE WHEN $4 THEN clock_timestamp() END FROM paper_questions
-        WHERE tenant_id = $1 AND paper_id = $2 AND id = $3
+        WHERE tenant_id = $1 AND paper_id = $2 AND id = $3 AND NOT figure_review_blocked
         ON CONFLICT (tenant_id, question_id) DO UPDATE SET bookmarked = excluded.bookmarked,
           mistake_recorded_at = coalesce(question_recall.mistake_recorded_at, excluded.mistake_recorded_at) RETURNING bookmarked
       `, [tenant, paperId, questionId, request.body.bookmarked]));

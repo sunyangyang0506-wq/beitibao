@@ -7,6 +7,7 @@ import { asTenant, lockCourseMaterial, transaction } from './db.js';
 import { recognizeImage } from './image-recognition.js';
 import { choiceOptionCount, completeChoiceStem } from './paper-choices.js';
 import { renderPage } from './paper-parser.js';
+import { matchPrintedChoiceReferences } from './printed-paper-answers.js';
 import { closedBookActive } from './practice.js';
 import { loadPaperOriginal, type PaperOriginal, type PaperStorage } from './paper-storage.js';
 import { queueCoursePrediction } from './predictions.js';
@@ -16,6 +17,7 @@ import { setTenant, subjectKey } from './school-identity.js';
 import type { JobTarget } from './job-outbox.js';
 
 export const pdfRecognitionSize = 2400;
+export const pdfFigureSize = 3600;
 export const candidatesPerPage = 100;
 const pageParams = { type: 'object', required: ['paperId', 'page'], properties: {
   paperId: { type: 'string', format: 'uuid' }, page: { type: 'integer', minimum: 1, maximum: 30 }
@@ -114,7 +116,7 @@ export function registerPdfPageRecognition(app: FastifyInstance, pool: Pool, pre
     });
 }
 
-async function publishCompletedPages(db: PoolClient, tenant: string, paperId: string, reuseSolutions = true, queueSolutions = true) {
+export async function publishCompletedPages(db: PoolClient, tenant: string, paperId: string, reuseSolutions = true, queueSolutions = true) {
   const key = [tenant, paperId];
   const { rows } = await db.query<{
     page_number: number; reviewed_at: Date | null; status: string; failure: string | null;
@@ -159,9 +161,30 @@ async function publishCompletedPages(db: PoolClient, tenant: string, paperId: st
       WHERE tenant_id = $1 AND paper_id = $2 AND page_number = $3 AND stem = $4 AND cardinality(source_pages) = 0`,
     [...key, row.page_number, checked.at(-1), next.page_number]);
   }
+  if (rows.length && rows.every(row => row.recognition && ['review', 'failed'].includes(row.status))) {
+    const { rows: [original] } = await db.query<{ pages: string[] }>('SELECT pages FROM papers WHERE tenant_id=$1 AND id=$2', key);
+    if (original && rows.length === original.pages.length) {
+      const pages = rows.map(row => ({
+        page: row.page_number, text: original.pages[row.page_number - 1] ?? '', ocr: row.recognition?.printedAnswerKey
+      }));
+      if (pages.some(page => page.ocr || /答案|answer/iu.test(page.text))) {
+        const { rows: questions } = await db.query<{ id: string; stem: string; question_kind: string }>(`
+          SELECT id, stem, question_kind FROM paper_questions
+          WHERE tenant_id=$1 AND paper_id=$2 AND NOT figure_review_blocked
+        `, key);
+        const answers = matchPrintedChoiceReferences(questions, rows.flatMap(row => row.recognition?.stems ?? []), pages);
+        if (answers.length) await db.query(`
+          UPDATE paper_questions q SET reference = printed.reference
+          FROM jsonb_to_recordset($3::jsonb) AS printed(id uuid, stem text, reference jsonb)
+          WHERE q.tenant_id=$1 AND q.paper_id=$2 AND q.id=printed.id AND q.stem=printed.stem
+            AND q.reference IS NULL AND q.input_revision=1
+        `, [...key, JSON.stringify(answers)]);
+      }
+    }
+  }
   if (reuseSolutions) await reuseStandaloneSolutions(db, tenant, paperId);
   if (queueSolutions) await db.query(`UPDATE paper_questions SET solution_status = 'queued'
-    WHERE tenant_id = $1 AND paper_id = $2 AND solution_status IS NULL`, key);
+    WHERE tenant_id = $1 AND paper_id = $2 AND solution_status IS NULL AND NOT figure_review_blocked`, key);
   return true;
 }
 
@@ -191,8 +214,10 @@ export async function processNextPageRecognition(pool: Pool, recognize = recogni
   let recognition: Awaited<ReturnType<typeof recognizeImage>> | null = null;
   let failure: string | null = null;
   try {
-    const image = await renderPage(await loadPaperOriginal(job, storage), job.page_number, pdfRecognitionSize);
-    recognition = await recognize(image, 'image/png', modelRequest(pool, job.tenant_id, 'page'), job.cover_choice_only);
+    const original = await loadPaperOriginal(job, storage);
+    const image = await renderPage(original, job.page_number, pdfRecognitionSize);
+    recognition = await recognize(image, 'image/png', modelRequest(pool, job.tenant_id, 'page'), job.cover_choice_only,
+      () => renderPage(original, job.page_number, pdfFigureSize));
   } catch (error) {
     const code = error instanceof Error ? error.message : '';
     failure = error instanceof Error && error.name === 'TimeoutError' ? 'OCR_TIMEOUT' :
