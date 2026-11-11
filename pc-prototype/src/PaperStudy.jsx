@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { RecallQuestion } from './QuestionRecall.jsx';
+import { RecallSequence } from './QuestionRecall.jsx';
+import { PaperText } from './PaperText.jsx';
 import { assignmentMessage } from './paper-assignment.js';
 
 const active = value => ['queued', 'processing'].includes(value?.status);
@@ -81,6 +82,7 @@ export function PaperStudy({ api, csrf, paperId, onExpired, onBack, onPractice, 
       <SavedImageRecovery result={result} busy={busy} onPublish={() => act('/publish-saved-recognition')} />
       {recoveryNotice && <p role="status">{recoveryNotice}</p>}
       <PendingPageRecovery pages={pending} busy={busy} onRetry={page => act('/pages/' + page + '/recognition')} />
+      <FigureReviews pages={pending} path={path} busy={busy} canReread={paper?.modelAvailable} onAction={act} />
       {paper?.missingPages && <p role="status">原卷有缺页，请补齐后上传完整 PDF。已有题目仍可背诵。</p>}
       {result && <div className="pc-dialog-actions">
         <label>整套练习计时<select value={duration} onChange={event => setDuration(event.target.value)}><option value="">不限时</option>{[30,60,90,120].map(minutes => <option key={minutes} value={minutes}>{minutes} 分钟</option>)}</select></label>
@@ -139,7 +141,7 @@ export function PaperProcessingRecovery({ result, busy, onRetry }) {
 }
 
 export function PendingPageRecovery({ pages, busy, onRetry }) {
-  return pages.filter(page => ['failed', 'review'].includes(page.status)).map(page =>
+  return pages.filter(page => !page.figureReviewCandidates?.length && ['failed', 'review'].includes(page.status)).map(page =>
     <p role={page.status === 'failed' ? 'alert' : 'status'} key={page.page}>
       第 {page.page} 页：{page.status === 'review' ? '已有结果待整理，可继续处理后加入题目背诵。' : pageFailure[page.failure] ?? '题目整理失败。'}
       <button disabled={busy} onClick={() => onRetry(page.page)}>{page.status === 'review' ? '重新整理本页' : '重试本页'}</button>
@@ -178,11 +180,83 @@ export function StudyQuestions({ result, paperId, api, csrf, onExpired, onMistak
   return <section className="panel padded" aria-label="本卷题目">
     <h2>本卷题目 · {result.questions.length} 题</h2>
     <p>先回忆，再逐题查看答案和知识点。</p>
-    {orderedStudyQuestions(result.questions, result.paper.pageOrder).map(question => <div key={question.id + ':' + (question.inputRevision ?? 1)}><RecallQuestion
-      question={{ ...question, paperTitle: result.paper.title }} path={'/papers/' + paperId + '/questions/' + question.id}
-      api={api} csrf={csrf} onExpired={onExpired} onMistakes={onMistakes} />
-      <details><summary>查看本题原卷</summary>{(question.sourcePages?.length ? question.sourcePages : [question.pageNumber]).map(page =>
-        <a key={page} href={'/api/v1/papers/' + paperId + '/pages/' + page} target="_blank" rel="noreferrer">原文件第 {page} 页 </a>)}</details></div>)}
+    <RecallSequence key={paperId} questions={orderedStudyQuestions(result.questions, result.paper.pageOrder).map(question => ({
+      ...question, paperId, paperTitle: result.paper.title
+    }))} api={api} csrf={csrf} onExpired={onExpired} onMistakes={onMistakes} />
+  </section>;
+}
+
+function FigureReading({ label, reading }) {
+  return <div><strong>{label}</strong>
+    {reading ? <>
+      {reading.nodes?.length > 0 && <p>节点 {reading.nodes.join('、')}</p>}
+      {reading.edges?.length > 0 && <ul>{reading.edges.map(({ from, to, label: edgeLabel }, index) =>
+        <li key={index}>{from}{reading.kind === 'undirected' ? ' — ' : ' → '}{to}{edgeLabel && '（' + edgeLabel + '）'}</li>)}</ul>}
+      {reading.description && <PaperText text={reading.description} />}
+    </> : <p>无可靠读数。</p>}
+  </div>;
+}
+
+function FigureCropReview({ figure, path, busy, canReread, onReread }) {
+  const source = '/api/v1' + path;
+  const box = Array.isArray(figure.box) ? figure.box : null;
+  return <section>
+    {box && <a href={source} target="_blank" rel="noreferrer">
+      <PaperPageImage key={box.join(',')} src={source} alt="图表裁片，可打开原尺寸查看" />
+    </a>}
+    <div className="pc-review-grid">
+      <FigureReading label="整页识别" reading={figure.initial} />
+      <FigureReading label="裁片重读" reading={figure.reread} />
+    </div>
+    {canReread && !figure.manualReread && <details><summary>调整裁片并重读</summary>
+      <form className="pc-fields" onSubmit={event => {
+        event.preventDefault();
+        const data = new FormData(event.currentTarget);
+        onReread(['left', 'top', 'right', 'bottom'].map(name => Number(data.get(name))));
+      }}>
+        <p>按原页从左上到右下定位，边界取 0 到 1000。</p>
+        <div className="pc-dialog-actions">{[['left', '左'], ['top', '上'], ['right', '右'], ['bottom', '下']]
+          .map(([name, label], index) => <label key={name}>{label} <input type="number" name={name}
+            min={0} max={1000} required defaultValue={box?.[index]} /></label>)}</div>
+        <button disabled={busy}>重读裁片</button>
+      </form>
+    </details>}
+  </section>;
+}
+
+export function FigureReviews({ pages, path, busy, canReread, onAction }) {
+  const candidates = pages.flatMap(page => (page.figureReviewCandidates ?? []).map(candidate => ({ page, candidate })));
+  if (!candidates.length) return null;
+  return <section className="panel padded" aria-label="图表待核对">
+    <h2>图表待核对</h2>
+    {candidates.map(({ page, candidate }) => {
+      const index = candidate % 100;
+      const stem = page.recognition?.stems?.[index];
+      const figures = page.recognition?.figures?.[index];
+      return <details className="pc-recognition-item" key={candidate}>
+        <summary>原文件第 {page.page} 页 · 第 {index + 1} 条识别题目</summary>
+        <a href={'/api/v1' + path + '/pages/' + page.page} target="_blank" rel="noreferrer">查看原页</a>
+        {Array.isArray(figures) && figures.map((figure, number) => {
+          const suffix = '/recognition/' + candidate + '/figures/' + number;
+          return figure && <FigureCropReview key={number} figure={figure} path={path + suffix}
+            canReread={canReread} busy={busy} onReread={box => onAction(suffix + '/reread', { box })} />;
+        })}
+        <form className="pc-fields" onSubmit={event => {
+          event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          onAction('/recognition-review', { candidateIndex: candidate, stem: data.get('stem'), visualReview: data.get('visualReview') });
+        }}>
+          <label>题干<textarea name="stem" maxLength={8000} required defaultValue={stem} /></label>
+          <label>核对后的图表内容<textarea name="visualReview" maxLength={8000} required /></label>
+          <button disabled={busy}>保存核对结果</button>
+        </form>
+        <details><summary>这条识别结果不是题目</summary>
+          <button type="button" disabled={busy} onClick={() => onAction('/recognition-review', { candidateIndex: candidate, stem: null })}>
+            确认移除这条识别结果
+          </button>
+        </details>
+      </details>;
+    })}
   </section>;
 }
 

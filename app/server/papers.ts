@@ -63,7 +63,7 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
           FROM papers
           CROSS JOIN LATERAL (
             SELECT EXISTS (
-              SELECT 1 FROM paper_questions q WHERE (q.tenant_id, q.paper_id) = (papers.tenant_id, papers.id)
+              SELECT 1 FROM paper_questions q WHERE (q.tenant_id, q.paper_id) = (papers.tenant_id, papers.id) AND NOT q.figure_review_blocked
             ) AS present
           ) questions
           CROSS JOIN LATERAL (
@@ -242,7 +242,7 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
             reference, model_solution AS "modelSolution", solution_status AS "solutionStatus", solution_failure AS "solutionFailure",
             CASE WHEN cardinality(source_pages) > 0 THEN source_pages END AS "sourcePages"
           FROM paper_questions q LEFT JOIN question_recall r ON (r.tenant_id, r.question_id) = (q.tenant_id, q.id)
-          WHERE q.tenant_id = $1 AND q.paper_id = $2 ORDER BY page_number, q.created_at
+          WHERE q.tenant_id = $1 AND q.paper_id = $2 AND NOT q.figure_review_blocked ORDER BY page_number, q.created_at
         `, key);
         const { rows: reviews } = await db.query(`
           SELECT f.candidate_index AS "candidateIndex", f.outcome, f.reviewed_stem AS "reviewedStem",
@@ -251,8 +251,18 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
           WHERE f.tenant_id = $1 AND f.paper_id = $2 ORDER BY f.candidate_index
         `, key);
         const { rows: pageReviews } = await db.query(`
-          SELECT page_number AS page, status, failure, recognition, reviewed_at AS "reviewedAt"
-          FROM paper_page_recognition WHERE tenant_id = $1 AND paper_id = $2 ORDER BY page_number
+          SELECT r.page_number AS page, r.status, r.failure, r.recognition - 'printedAnswerKey' AS recognition,
+            r.reviewed_at AS "reviewedAt", CASE WHEN r.status = 'review' AND r.reviewed_at IS NULL THEN ARRAY(
+              SELECT ((r.page_number - 1) * 100 + item.ordinality - 1)::integer
+              FROM jsonb_array_elements_text(r.recognition->'stems') WITH ORDINALITY AS item(stem, ordinality)
+              WHERE pdf_figure_pending(r.recognition, item.ordinality::integer - 1)
+                AND NOT EXISTS (
+                  SELECT 1 FROM recognition_feedback f
+                  WHERE (f.tenant_id, f.paper_id, f.candidate_index) =
+                    (r.tenant_id, r.paper_id, (r.page_number - 1) * 100 + item.ordinality - 1)
+                )
+            ) ELSE '{}'::integer[] END AS "figureReviewCandidates"
+          FROM paper_page_recognition r WHERE r.tenant_id = $1 AND r.paper_id = $2 ORDER BY r.page_number
         `, key);
         const recovery = await savedImageCandidates(db, key[0]!, key[1]!, {
           status: paper.status, media_type: paper.mediaType, model_allowed, is_prediction, recognition: paper.recognition
@@ -368,17 +378,17 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
       if ('locked' in result) return reply.code(409).send({ code: 'CLOSED_BOOK_ACTIVE' });
       return reply.code(result.reused ? 200 : 201).send(result);
     });
-  app.post<{ Params: { paperId: string; questionId: string }; Body: QuestionReference }>(
+  app.post<{ Params: { paperId: string; questionId: string }; Body: QuestionReference & { confirmPrinted?: boolean } }>(
     prefix + '/papers/:paperId/questions/:questionId/reference', { schema: {
       security, params: { type: 'object', required: ['paperId', 'questionId'], properties: { paperId: uuid, questionId: uuid } },
       body: { type: 'object', additionalProperties: false, required: ['kind', 'source', 'answers', 'explanation'], properties: {
         kind: { type: 'string', enum: ['choice', 'numeric', 'manual'] },
         source: { type: 'string', enum: ['teacher', 'verified'] },
         answers: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', minLength: 1, maxLength: 1000 } },
-        explanation: { type: 'string', maxLength: 2000 }
+        explanation: { type: 'string', maxLength: 2000 }, confirmPrinted: { type: 'boolean' }
       } }
     }, bodyLimit: 128 * 1024 }, async (request, reply) => {
-      const { kind, source, answers, explanation } = request.body;
+      const { kind, source, answers, explanation, confirmPrinted = false } = request.body;
       const values = answers.map(answer => answer.trim());
       if (values.some(value => !value || value.includes('\u0000') || (kind !== 'manual' && normalizeAnswer(value, kind) === null))
           || explanation.includes('\u0000')) {
@@ -387,11 +397,19 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
       const tenant = request.studySession!.id;
       const { paperId, questionId } = request.params;
       const reference = { kind, source, answers: values, explanation: explanation.trim() };
+      if (confirmPrinted && (kind !== 'choice' || source !== 'verified')) return reply.code(400).send({ code: 'INVALID_REFERENCE' });
       const result = await asTenant(pool, tenant, db => db.query(`
-        UPDATE paper_questions SET reference = $4
-        WHERE tenant_id = $1 AND paper_id = $2 AND id = $3 RETURNING id
-      `, [tenant, paperId, questionId, JSON.stringify(reference)]));
-      return result.rowCount ? { reference } : reply.code(404).send({ code: 'PAPER_NOT_FOUND' });
+        UPDATE paper_questions SET reference = $4::jsonb || CASE
+          WHEN reference ? 'sourcePage' AND reference->'answers' = $4::jsonb->'answers'
+            AND $4::jsonb->>'source' = 'verified'
+          THEN jsonb_build_object('sourcePage', reference->'sourcePage') ELSE '{}'::jsonb END
+        WHERE tenant_id = $1 AND paper_id = $2 AND id = $3 AND NOT figure_review_blocked
+          AND (NOT $5::boolean OR (reference->>'source' IN ('paper_ocr', 'verified')
+            AND reference ? 'sourcePage' AND reference->'answers' = $4::jsonb->'answers'))
+        RETURNING reference
+      `, [tenant, paperId, questionId, JSON.stringify(reference), confirmPrinted]));
+      if (!result.rowCount && confirmPrinted) return reply.code(409).send({ code: 'QUESTION_VERSION_CONFLICT' });
+      return result.rowCount ? { reference: result.rows[0].reference } : reply.code(404).send({ code: 'PAPER_NOT_FOUND' });
     });
   app.post<{ Params: { paperId: string; questionId: string } }>(
     prefix + '/papers/:paperId/questions/:questionId/solution', { schema: {
@@ -403,7 +421,7 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
       const result = await asTenant(pool, tenant, db => db.query(`
         UPDATE paper_questions SET solution_status = 'queued', solution_attempt_count = 0
         WHERE tenant_id = $1 AND paper_id = $2 AND id = $3
-          AND (solution_status IS NULL OR solution_status = 'failed')
+          AND NOT figure_review_blocked AND (solution_status IS NULL OR solution_status = 'failed')
           AND EXISTS (SELECT 1 FROM papers WHERE tenant_id = $1 AND id = $2 AND model_allowed)
       `, [tenant, paperId, questionId]));
       return result.rowCount ? reply.code(202).send({ status: 'queued' })

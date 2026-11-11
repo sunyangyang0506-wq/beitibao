@@ -15,4 +15,4 @@ GRANT SELECT (tenant_id, paper_id, id, stem, input_revision, visual_review, mode
   ON paper_questions TO :"queue_role";
 
 GRANT SELECT ON question_revision_history TO :"queue_role";
-GRANT SELECT (question_kind, reference) ON paper_questions TO :"queue_role";
+GRANT SELECT (question_kind, reference, figure_review_blocked) ON paper_questions TO :"queue_role";

@@ -34,6 +34,8 @@ For model-enabled PDF imports, publish checked questions automatically and remov
 
 Name the page preview panel “试题识别预览”. Keep the manual question-entry form and the initial per-page recognition button out of this panel. Open directly to the entire paper. Align each recognition preview with its matching original page in paper order. Render formulas and line breaks in recognized questions, model answers, and explanations. Keep raw PDF extraction in a collapsible section for copying.
 
+In the original-paper and by-type recall flows, show one question at a time with previous and next controls. Reveal only the active question's answer. Let learners compare a provisional scanned answer with its source page before confirming it. In the paper detail, show unresolved figure readings next to their original crop and keep them out of practice until reviewed.
+
 For the whole-paper practice view, put the choice answer input directly inside the parentheses and omit the stem-correction entry and per-question marking buttons. The answer card shows answer status and jumps to questions. For the recognition view, show model reference answers directly below their questions and keep detailed explanations collapsible.
 
 In the mistake notebook prototype, support grouping by mistake date, question type, and question type followed by mistake date. Apply active filters before grouping and list recent mistakes first within each group.

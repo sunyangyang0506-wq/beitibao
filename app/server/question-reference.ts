@@ -1,6 +1,7 @@
 export type QuestionReference = {
   kind: 'choice' | 'numeric' | 'manual';
-  source: 'teacher' | 'verified';
+  source: 'teacher' | 'verified' | 'paper' | 'paper_ocr';
+  sourcePage?: number;
   answers: string[];
   explanation: string;
 };
@@ -35,7 +36,7 @@ export function normalizeAnswer(value: string, kind: QuestionReference['kind']) 
 
 export function gradeAnswer(answer: string | undefined, reference?: QuestionReference | ModelReference | null) {
   if (!answer?.trim()) return 'unanswered';
-  if (!reference) return 'needs_review';
+  if (!reference || reference.source === 'paper_ocr') return 'needs_review';
   const normalized = normalizeAnswer(answer, reference.kind);
   if (normalized === null) return 'needs_review';
   return reference.answers.some(value => normalizeAnswer(value, reference.kind) === normalized)

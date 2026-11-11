@@ -172,8 +172,10 @@ test('study follows saved page order while preserving within-page sequence and o
   assert.equal(render.orderedStudyQuestions(questions, []), questions);
   assert.deepEqual(render.orderedStudyQuestions(questions, [2]).map(q => q.id), ['q2', 'q3', 'q1', 'q4']);
   const html = render.study({ paper: { title: '调序原卷', pageOrder: [2, 1, 3] }, questions });
-  assert.ok(html.indexOf('原页二第一题') < html.indexOf('原页二第二题'));
-  assert.ok(html.indexOf('原页二第二题') < html.indexOf('原页一题'));
-  assert.ok(html.indexOf('原页一题') < html.indexOf('原页三题'));
+  assert.match(html, /原页二第一题/);
+  assert.doesNotMatch(html, /原页二第二题|原页一题|原页三题/);
+  assert.match(html, /第 1 \/ 4 题/);
+  assert.match(html, /<button type="button" disabled="">上一题<\/button>/);
+  assert.match(html, /<button type="button">下一题<\/button>/);
   assert.match(html, /href="\/api\/v1\/papers\/paper\/pages\/2"/);
 });

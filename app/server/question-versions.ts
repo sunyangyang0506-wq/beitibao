@@ -14,7 +14,7 @@ export async function reviseQuestion(db: PoolClient, tenant: string, paperId: st
   if (paper.course_id) await lockCourseMaterial(db, tenant, paper.course_id);
   await db.query('SELECT 1 FROM papers WHERE tenant_id=$1 AND id=$2 FOR UPDATE', [tenant, paperId]);
   const { rows: [question] } = await db.query<{ stem: string; input_revision: number; stem_correction: string | null }>(
-    `SELECT q.stem,q.input_revision,r.stem_correction FROM paper_questions q LEFT JOIN question_recall r ON (r.tenant_id,r.question_id)=(q.tenant_id,q.id) WHERE q.tenant_id=$1 AND q.paper_id=$2 AND q.id=$3 FOR UPDATE OF q`, [tenant, paperId, questionId]);
+    `SELECT q.stem,q.input_revision,r.stem_correction FROM paper_questions q LEFT JOIN question_recall r ON (r.tenant_id,r.question_id)=(q.tenant_id,q.id) WHERE q.tenant_id=$1 AND q.paper_id=$2 AND q.id=$3 AND NOT q.figure_review_blocked FOR UPDATE OF q`, [tenant, paperId, questionId]);
   if (!question) return null;
   if (question.input_revision !== expectedRevision) return { conflict: true as const };
   if (stemKey(stem) === stemKey(question.stem)) return { stemCorrection: question.stem_correction, inputRevision: question.input_revision, changed: false };

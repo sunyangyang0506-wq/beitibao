@@ -228,7 +228,7 @@ export function registerPracticeRoutes(app: FastifyInstance, pool: Pool, prefix:
       if (previous?.submittedAt) {
         const { rows: [change] } = await db.query<{ changed: boolean }>(`
           SELECT EXISTS (
-            SELECT 1 FROM (SELECT * FROM paper_questions WHERE tenant_id=$1 AND paper_id=$2) q
+            SELECT 1 FROM (SELECT * FROM paper_questions WHERE tenant_id=$1 AND paper_id=$2 AND NOT figure_review_blocked) q
             FULL JOIN jsonb_to_recordset($3::jsonb)
               AS old(id uuid, stem text, "inputRevision" integer, "visualReview" text, kind text) ON q.id=old.id
             WHERE q.id IS NULL OR old.id IS NULL OR q.input_revision<>coalesce(old."inputRevision",1)
@@ -240,7 +240,7 @@ export function registerPracticeRoutes(app: FastifyInstance, pool: Pool, prefix:
         if (change?.changed) {
           const eligible = await db.query(`SELECT 1 FROM papers p WHERE p.tenant_id=$1 AND p.id=$2
             AND p.status='review' AND p.course_id IS NOT NULL AND NOT p.missing_pages
-            AND EXISTS (SELECT 1 FROM paper_questions q WHERE q.tenant_id=p.tenant_id AND q.paper_id=p.id)
+            AND EXISTS (SELECT 1 FROM paper_questions q WHERE q.tenant_id=p.tenant_id AND q.paper_id=p.id AND NOT q.figure_review_blocked)
             AND NOT EXISTS (SELECT 1 FROM paper_page_recognition r WHERE r.tenant_id=p.tenant_id AND r.paper_id=p.id AND r.reviewed_at IS NULL)`, key);
           if (!eligible.rowCount) return { attempt: previous, pending: true };
           await refreshPracticeResults(db, tenant, { paperId: request.params.paperId });
@@ -266,7 +266,7 @@ export function registerPracticeRoutes(app: FastifyInstance, pool: Pool, prefix:
           ORDER BY coalesce(array_position(p.page_order, q.page_number), q.page_number), q.created_at, q.id
         ), CASE WHEN $3::int IS NULL THEN NULL ELSE clock_timestamp() + make_interval(mins => $3::int) END, $4
         FROM papers p JOIN paper_questions q ON (q.tenant_id, q.paper_id) = (p.tenant_id, p.id)
-        WHERE p.tenant_id = $1 AND p.id = $2 AND p.status = 'review' AND p.course_id IS NOT NULL AND NOT p.missing_pages
+        WHERE p.tenant_id = $1 AND p.id = $2 AND p.status = 'review' AND p.course_id IS NOT NULL AND NOT p.missing_pages AND NOT q.figure_review_blocked
           AND NOT EXISTS (SELECT 1 FROM paper_page_recognition r
             WHERE (r.tenant_id, r.paper_id) = (p.tenant_id, p.id) AND r.reviewed_at IS NULL)
         GROUP BY p.tenant_id, p.id, p.title
@@ -283,7 +283,7 @@ export function registerPracticeRoutes(app: FastifyInstance, pool: Pool, prefix:
       if (modelsEnabled && current && !current.submittedAt) {
         await db.query(`
           UPDATE paper_questions SET solution_status = 'queued'
-          WHERE tenant_id = $1 AND paper_id = $2 AND solution_status IS NULL AND id = ANY($3::uuid[])
+          WHERE tenant_id = $1 AND paper_id = $2 AND solution_status IS NULL AND id = ANY($3::uuid[]) AND NOT figure_review_blocked
             AND EXISTS (SELECT 1 FROM papers WHERE tenant_id = $1 AND id = $2 AND model_allowed)
         `, [...key, current.questions.map(question => question.id)]);
       }

@@ -3,7 +3,7 @@ import { samePracticeAttempt } from './practice-draft.js';
 import { libraryStatusLabels } from './paper-library-status.js';
 import { MistakeRetry } from './Mistakes.jsx';
 import { KnowledgeNetwork, KnowledgePoints } from './Knowledge.jsx';
-import { QuestionRecall, AnswerCorrection, questionKinds } from './QuestionRecall.jsx';
+import { QuestionRecall, AnswerCorrection, questionKinds, referenceLabel } from './QuestionRecall.jsx';
 import React, { useEffect, useRef, useState } from 'react';
 import { PaperText } from './PaperText.jsx';
 
@@ -369,7 +369,7 @@ export function Attempt({ paperId, api, csrf, onOpen, onExpired, embedded = fals
           {question.inputChanged && <p>题干已有新版，下方保留本次作答的原题、答案和成绩。</p>}
           {question.referenceChanged && <p>参考答案已更新。下方显示交卷时的答案和解析。</p>}
           {question.reference && <>
-            <p>参考答案（{question.reference.source === 'teacher' ? '教师提供' : '已核验'}）</p>
+            <p>参考答案（{referenceLabel(question.reference.source)}）</p>
             <div>{question.reference.answers.join('、')}</div>
             {question.reference.explanation && <p>{question.reference.explanation}</p>}
           </>}

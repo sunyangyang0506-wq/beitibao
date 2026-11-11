@@ -31,6 +31,7 @@ async function sources(db: Pool | PoolClient, tenant: string, course: string) {
           SELECT 1 FROM paper_page_recognition r
           WHERE (r.tenant_id, r.paper_id) = (p.tenant_id, p.id) AND r.reviewed_at IS NULL
         )
+        AND NOT q.figure_review_blocked
         AND char_length(q.stem) <= $3 AND q.stem !~* $4
       ORDER BY coalesce(p.school_content_key,p.id::text),q.page_number,q.fingerprint,q.question_kind,q.reference,q.visual_review,
         p.created_at,p.id,q.id

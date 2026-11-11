@@ -11,7 +11,7 @@ async function originalQuestion(db: PoolClient, tenant: string, paper: string, q
   const { rows: [item] } = await db.query<{ course_id: string; question_kind: string; stem: string }>(`
     SELECT p.course_id, q.question_kind, q.stem FROM paper_questions q
     JOIN papers p ON (q.tenant_id, q.paper_id) = (p.tenant_id, p.id)
-    WHERE q.tenant_id = $1 AND q.paper_id = $2 AND q.id = $3 AND NOT p.is_prediction AND p.status = 'review'
+    WHERE q.tenant_id = $1 AND q.paper_id = $2 AND q.id = $3 AND NOT q.figure_review_blocked AND NOT p.is_prediction AND p.status = 'review'
   `, [tenant, paper, question]);
   return item;
 }
@@ -41,7 +41,7 @@ export function registerQuestionEquivalence(app: FastifyInstance, pool: Pool, pr
         SELECT q.id, p.title, q.stem, q.page_number AS "pageNumber"
         FROM paper_questions q JOIN papers p ON (q.tenant_id, q.paper_id) = (p.tenant_id, p.id)
         WHERE q.tenant_id = $1 AND p.course_id = $2 AND p.id <> $3 AND p.status = 'review' AND NOT p.is_prediction
-          AND q.question_kind = $4 AND NOT EXISTS (
+          AND q.question_kind = $4 AND NOT q.figure_review_blocked AND NOT EXISTS (
             SELECT 1 FROM practice_attempts a WHERE (a.tenant_id,a.paper_id) = (p.tenant_id,p.id) AND a.submitted_at IS NULL
           ) AND ($5 = '' AND regexp_replace(q.stem, '[[:space:]]+', '', 'g') = regexp_replace($6, '[[:space:]]+', '', 'g')
             OR $5 <> '' AND strpos(lower(q.stem), lower($5)) > 0)
@@ -76,7 +76,7 @@ export function registerQuestionEquivalence(app: FastifyInstance, pool: Pool, pr
         SELECT q.paper_id, q.question_kind FROM paper_questions q
         JOIN papers p ON (q.tenant_id, q.paper_id) = (p.tenant_id, p.id)
         WHERE q.tenant_id = $1 AND q.id = $2 AND p.course_id = $3 AND q.paper_id <> $4
-          AND p.status = 'review' AND NOT p.is_prediction
+          AND p.status = 'review' AND NOT p.is_prediction AND NOT q.figure_review_blocked
       `, [tenant, memberId, source.course_id, paperId]);
       if (!target) return 'PAPER_NOT_FOUND';
       if (target.question_kind !== source.question_kind) return 'EQUIVALENCE_KIND_MISMATCH';

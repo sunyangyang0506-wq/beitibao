@@ -22,7 +22,7 @@ export function figureBox(value: unknown): Box | null {
 }
 
 export function figureWithinQuestion(box: Box, question: Box | null | undefined) {
-  if (!question) return true;
+  if (!question) return false;
   const tolerance = 15;
   return box[0] >= question[0] - tolerance && box[1] >= question[1] - tolerance &&
     box[2] <= question[2] + tolerance && box[3] <= question[3] + tolerance;
