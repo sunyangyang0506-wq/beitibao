@@ -1,9 +1,10 @@
 import sharp from 'sharp';
+import { classificationText } from './subject-assignment.js';
 import { choiceOptionCount, completeChoiceStem, repairChoiceStem } from './paper-choices.js';
 import { compareFigure, cropOriginal, figureBox, figureReading, figureText, figureWithinQuestion, isNumericSearchTree, type PaperFigure } from './paper-figures.js';
 
 export const imageRecognitionModel = 'qwen3.5-flash-2026-02-23';
-export const imagePromptVersion = 'image-questions-v23';
+export const imagePromptVersion = 'image-questions-v24';
 export type ImageType = 'image/png' | 'image/jpeg';
 
 export function isImageType(value: unknown): value is ImageType {
@@ -27,10 +28,11 @@ const pagePrompt = '按原文逐字转录题目，保留大题号、选项、公
   '同一大题的小问放一起。没有新题号的跨页续文和选项放入 continuation。不要猜测缺失文字。忽略署名、版权、空白答题栏和参考答案区。若只有答案、解析或评分说明，返回空 questions 数组。' +
   '逐字转录页眉或页脚确实可见的页码标注到 printedPageLabel，保留所有数字和分隔符。例如「頁次：4－1」必须保留原文，其当前页是 1、总页数是 4。「3/16」当前页是 3。单独印刷的页码可只填该数字。无法辨认填 null，不要把代号、题号、年份或总页数当当前页。' +
   '识别学科名称，在 paperSubject 返回不含学校、教师、学期、试卷版本的课程名称。优先使用卷面明确标注的学科，可根据明确的科目代码和题目确定学科。无法可靠确定时返回 null。' +
+  'paperTerm 和 paperTeacher 仅逐字转录卷面明确的学期和教师，无法确定时返回 null，禁止猜测当前学期或教师。' +
   '如果卷面有明确的试卷主标题，在 paperTitle 中逐字转录。只取主标题，忽略答题说明、机构水印、页眉页脚和章节标题；无明确主标题时返回 null，禁止猜测。' +
   '逐行核对从本页第一道新题到最后一道新题的编号。每道题的 printedQuestionNumber 单独记录实际印刷的阿拉伯大题号，如 "01" 或 "17"，没有则填 null。stem 开头也保留原题号。禁止按数组位置推算编号。页首即使出现上一题选项或小问，也必须继续识别紧随其后的第一道新题。只有没有独立大题号的续文才跳过。分两栏排版的 A-D 选项仍全部纳入该题。输出前核查题号、选项、数字和公式。' +
   '多栏页先找到分栏线，按栏从上到下读，同一题的题干和图表才放在一起。含答案版中，留空题内已经填好的答案，保留完整题干和所有选项。' + transcriptionRules +
-  '只返回 JSON 对象 {"printedPageLabel":null,"choiceInstructions":null,"paperTitle":null,"paperSubject":null,"continuation":null,"questions":[{"printedQuestionNumber":null,"stem":"原文题号、题干和可见选项","choiceOptionCount":null,"questionBox":[左,上,右,下],"visualContext":"可见图表的简述，纯文字题为空","standalone":false,"figures":[{"box":[左,上,右,下],"reading":{}}]}]}。' +
+  '只返回 JSON 对象 {"printedPageLabel":null,"choiceInstructions":null,"paperTitle":null,"paperSubject":null,"paperTerm":null,"paperTeacher":null,"continuation":null,"questions":[{"printedQuestionNumber":null,"stem":"原文题号、题干和可见选项","choiceOptionCount":null,"questionBox":[左,上,右,下],"visualContext":"可见图表的简述，纯文字题为空","standalone":false,"figures":[{"box":[左,上,右,下],"reading":{}}]}]}。' +
   'standalone 仅在本题题干完整且可独立作答、无需图表、同页或其他页材料、前题信息或卷尾答案时设为 true，任何疑点均设为 false。' +
   'questionBox 包围整道题及其图表。figures 的 box 只包围本题实际图表，紧贴四边并包含所有标签。纯文字题的 figures 为空数组。' +
   '所有框使用整页 0 到 1000 整数坐标。无法定位的框用 null。' + figureSchema;
@@ -39,7 +41,7 @@ const searchTreeCropPrompt = '本图是整数键值的搜索树。只沿实际�
 const otherCropPrompt = '如果图中明确为 AVL 或 BST，用节点键值检查左右关系；不确定则保留原图所见，不新增或改写边。';
 
 type RecognitionPayload = { questions?: unknown; printedPageLabel?: unknown; printedPage?: unknown; printedTotalPages?: unknown;
-  choiceInstructions?: unknown; paperTitle?: unknown; paperSubject?: unknown; continuation?: unknown;
+  choiceInstructions?: unknown; paperTitle?: unknown; paperSubject?: unknown; paperTerm?: unknown; paperTeacher?: unknown; continuation?: unknown;
   reading?: unknown; options?: unknown; choiceOptions?: unknown; printedQuestionNumbers?: unknown };
 class RetryableRecognitionError extends Error {}
 
@@ -309,10 +311,13 @@ export async function recognizeImage(bytes: Buffer, mediaType: ImageType, reques
   const paperTitle = title && [...title].length <= 200 && !/[\p{Cc}\p{Cf}]/u.test(title) ? title : undefined;
   const subject = typeof result.paperSubject === 'string' ? result.paperSubject.normalize('NFKC').trim().replace(/\s+/gu, ' ') : '';
   const paperSubject = subject && [...subject].length <= 100 && !/[\p{Cc}\p{Cf}]/u.test(subject) ? subject : undefined;
+  const paperTerm = classificationText(result.paperTerm, 80);
+  const paperTeacher = classificationText(result.paperTeacher, 100);
   const standaloneStems = questions.flatMap((item, index) => item.standalone === true && !visualContexts[index] &&
     !figures[index]?.length && completeChoiceStem(stems[index]!, choiceCounts[index]!) !== null ? [stems[index]!] : []);
   return { ...printedPageMetadata(result), ...(choiceOnly && { choiceOnly }), ...(choiceCounts.some(Boolean) && { choiceCounts }),
     ...(standaloneStems.length && { standaloneStems }), ...(paperSubject && { paperSubject }), ...(paperTitle && { paperTitle }),
+    ...(paperTerm && { paperTerm }), ...(paperTeacher && { paperTeacher }),
     ...(continuation && { continuation }), model: imageRecognitionModel, promptVersion: imagePromptVersion,
     stems, visualContexts, questionBoxes, figures, resolvedContexts };
 }

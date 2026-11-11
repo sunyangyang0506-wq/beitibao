@@ -1,3 +1,4 @@
+import { PaperStudy } from './PaperStudy.jsx';
 import { samePracticeAttempt } from './practice-draft.js';
 import { libraryStatusLabels } from './paper-library-status.js';
 import { MistakeRetry } from './Mistakes.jsx';
@@ -55,66 +56,63 @@ function PracticeQuestionInput({ question, number, title, answer, submitted, dis
   </div>;
 }
 
-export function Practice({ paperId, courses, api, csrf, onOpen, onExpired, onMistakes }) {
+export function Practice({ paperId, courses, api, csrf, onOpen, onExpired, onMistakes, browseId, onUpload }) {
   if (paperId) return <Attempt paperId={paperId} api={api} csrf={csrf} onOpen={onOpen} onExpired={onExpired} />;
-  return <PaperPicker onMistakes={onMistakes} courses={courses} api={api} csrf={csrf} onOpen={onOpen} onExpired={onExpired} />;
+  return <PaperPicker browseId={browseId} onUpload={onUpload} onMistakes={onMistakes} courses={courses} api={api} csrf={csrf} onOpen={onOpen} onExpired={onExpired} />;
 }
 
-function PaperPicker({ courses, api, csrf, onOpen, onExpired, onMistakes }) {
+function PaperPicker({ courses, api, csrf, onOpen, onExpired, onMistakes, browseId, onUpload }) {
   const [recallPapers, setRecallPapers] = useState(null);
-  const [chosen, setChosen] = useState('');
-  const [duration, setDuration] = useState('');
-  const [selectedPaperId, setSelectedPaperId] = useState('');
-  const courseId = chosen || courses[0]?.id;
+  const [chosen, setChosen] = useState('auto');
+  const [selectedPaperId, setSelectedPaperId] = useState(browseId ?? '');
   const [result, setResult] = useState(null);
-
+  const courseId = chosen;
+  useEffect(() => { if (browseId) { setChosen('auto'); setSelectedPaperId(browseId); } }, [browseId]);
   useEffect(() => {
-    if (!courseId) return;
     const controller = new AbortController();
-    api('/courses/' + courseId + '/papers', { signal: controller.signal }).then(({ papers }) => {
-      if (!controller.signal.aborted) setResult({ courseId, papers: papers.filter(paper => paper.status === 'review' && paper.hasQuestions) });
-    }).catch(error => {
-      if (controller.signal.aborted) return;
-      if (error.status === 401) onExpired();
-      else setResult({ courseId, error: error.message });
-    });
-    return () => controller.abort();
+    let timer;
+    async function load() {
+      try {
+        const data = await api('/courses/' + courseId + '/papers', { signal: controller.signal });
+        if (controller.signal.aborted) return;
+        setResult({ courseId, papers: data.papers });
+        if (data.papers.some(paper => paper.libraryStatus === 'recognizing')) timer = setTimeout(load, 1800);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        if (error.status === 401) onExpired();
+        else setResult({ courseId, error: error.message });
+      }
+    }
+    load();
+    return () => { controller.abort(); clearTimeout(timer); };
   }, [courseId, api, onExpired]);
 
   if (recallPapers) return <QuestionRecall onMistakes={onMistakes} papers={recallPapers} api={api} csrf={csrf} onExpired={onExpired} onBack={() => setRecallPapers(null)} />;
   const current = result?.courseId === courseId ? result : null;
-  const selectedPaper = current?.papers?.find(paper => paper.id === selectedPaperId);
+  const selectedPaper = current?.papers?.find(paper => paper.id === selectedPaperId) ?? current?.papers?.[0];
+  const recallable = (current?.papers ?? []).filter(paper => paper.hasQuestions && paper.courseId && paper.courseId === (courseId === 'auto' ? selectedPaper?.courseId : courseId));
   return <main className="content">
-    <div className="intro"><h1>题目背诵</h1><p>选择科目和原卷，练习已经确认的题目。</p></div>
-    <section className="panel padded">
-      {courseId ? <label className="pc-course-select">科目<select value={courseId} onChange={event => { setChosen(event.target.value); setSelectedPaperId(''); }}>
+    <div className="intro"><h1>题目背诵</h1><p>上传试卷后，题目自动按科目归集到这里。选择原卷即可查看题目并背诵。</p>
+      {onUpload && <button onClick={onUpload}>上传试卷</button>}</div>
+    <section className="panel padded pc-fields">
+      <label className="pc-course-select">科目<select value={courseId} onChange={event => { setChosen(event.target.value); setSelectedPaperId(''); }}>
+        <option value="auto">全部科目与待归属试卷</option>
         {courses.map(course => <option key={course.id} value={course.id}>{course.name} · {course.term}</option>)}
-      </select></label> : <p>请先在学习进展添加科目。</p>}
+      </select></label>
       {current?.error && <p role="alert">{current.error}</p>}
-      {courseId && !current && <p role="status">正在读取试卷…</p>}
-      {current?.papers?.length === 0 && <p>请先上传试卷并确认题目。</p>}
-      {current?.papers?.length > 0 && <div className="pc-fields">
-        <h2>整套背诵</h2>
-        <label>选择试卷<select value={selectedPaper?.id ?? ''} onChange={event => setSelectedPaperId(event.target.value)}>
-          <option value="">请选择一套原卷</option>
-          {current.papers.map(paper => <option key={paper.id} value={paper.id} disabled={paper.libraryStatus !== 'ready'}>
-            {paper.title}{paper.libraryStatus !== 'ready' ? '（' + libraryStatusLabels[paper.libraryStatus] + '）' : ''}
+      {!current && <p role="status">正在读取试卷…</p>}
+      {current?.papers?.length === 0 && <p>还没有试卷。上传 PDF 后，模型会自动识别并归属科目。</p>}
+      {current?.papers?.length > 0 && <>
+        <label>试卷<select value={selectedPaper?.id ?? ''} onChange={event => setSelectedPaperId(event.target.value)}>
+          {current.papers.map(paper => <option key={paper.id} value={paper.id}>
+            {paper.title} · {libraryStatusLabels[paper.libraryStatus] ?? '整理中'}
           </option>)}
         </select></label>
-        <label>整套练习计时<select value={duration} onChange={event => setDuration(event.target.value)}>
-          <option value="">不限时</option><option value="30">30 分钟</option><option value="60">60 分钟</option>
-          <option value="90">90 分钟</option><option value="120">120 分钟</option>
-        </select></label>
-        <div className="pc-dialog-actions">
-          <button className="primary" disabled={selectedPaper?.libraryStatus !== 'ready'}
-            onClick={() => onOpen(selectedPaper.id, duration ? Number(duration) : undefined)}>开始整套背诵</button>
-        </div>
-        <h2>按题型背诵</h2>
-        <button onClick={() => setRecallPapers(current.papers)}>
-          {current.papers.length > 1 ? '跨卷按题型背诵' : '开始按题型背诵'}
-        </button>
-      </div>}
+        {recallable.length > 0 && <button onClick={() => setRecallPapers(recallable)}>同科跨卷按题型背诵</button>}
+      </>}
     </section>
+    {selectedPaper && <PaperStudy key={selectedPaper.id} study embedded paperId={selectedPaper.id} api={api} csrf={csrf}
+      courses={courses} onExpired={onExpired} onPractice={onOpen} onMistakes={onMistakes} />}
   </main>;
 }
 

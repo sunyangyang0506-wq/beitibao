@@ -1,3 +1,6 @@
+import { DemoPersonalNotes } from './DemoPersonalNotes.jsx';
+import { assignDemoSubject } from './demo-paper-assignment.js';
+import { assignmentMessage } from './paper-assignment.js';
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, BookOpen, ChartBar, CheckCircle, ClipboardText, FileText, Plus, Sparkle, UploadSimple } from '@phosphor-icons/react';
 import { initialCourses, initialLearned, demoPaperTitle, demoPaperSubject, demoRecognitionQuestions, demoPredictionFor } from './data';
@@ -91,9 +94,9 @@ function MistakeCard({ entry, course, onRetry, expanded }) {
 
 const paperState = paper => paper.status ?? (paper.questions.length ? '可练习' : '待核对');
 const paperNext = {
-  识别中: '识别完成后可查看题干与参考答案',
+  识别中: '整理完成后题目自动出现在题目背诵',
   待核对: '查看识别结果，确认是否需要重新上传',
-  待归属: '查看科目识别结果与原卷',
+  待归属: '科目暂未确定，原卷已保留',
   缺页: '补齐缺页后重新上传完整 PDF',
   识别失败: '检查 PDF 是否清晰，重新上传',
   可练习: '查看原卷，或开始整套答题'
@@ -186,7 +189,6 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
   const [clock,setClock] = useState(Date.now());
   const [jobClock, setJobClock] = useState(Date.now);
   const [allowUse, setAllowUse] = useState(false);
-  const [assignment, setAssignment] = useState('');
   const [duration, setDuration] = useState('original');
   const [personalNotes, setPersonalNotes] = useWorkspace('answer-notes', {});
   const [readerQuestion, setReaderQuestion] = useState('');
@@ -257,9 +259,10 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
   const changeCourse = id => { setCourseId(id); setType(''); setPicked([]); setPaperId(''); };
   const openUpload = () => { setUploads([]); setAllowUse(false); setNotice(''); setDialog('upload'); };
   const go = next => { setScreen(next); setNotice(''); window.scrollTo(0,0); };
-  const openPaper = (c,p,q) => { changeCourse(c.id); setPaperId(p.id); setReaderQuestion(q?.id ?? ''); go('reader'); };
+  const openPaper = (c,p,q) => { if (q) setMode('whole'); changeCourse(c.id); setPaperId(p.id); setReaderQuestion(q?.id ?? ''); go(q ? 'practice' : 'reader'); };
+  const browsePaper = (c,p) => { changeCourse(c?.id ?? ''); setPaperId(p.id); setMode('whole'); go('practice'); };
   useEffect(() => {
-    if (screen === 'reader' && readerQuestion) document.getElementById('recognized-' + readerQuestion)?.scrollIntoView({block:'start'});
+    if (screen === 'practice' && readerQuestion) document.getElementById('recognized-' + readerQuestion)?.scrollIntoView({block:'start'});
   }, [screen, readerQuestion]);
   const updateDraft = fn => setDrafts(old => ({...old,[session.key]:fn(old[session.key] || {})}));
   const answer = (q,value) => updateDraft(d => ({...d,answers:{...d.answers,[q.id]:value}}));
@@ -397,18 +400,20 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
     setSavingPaper(true);
     const uploadedAt = Date.now();
     const sampleBytes = loadSample();
+    const workingCourses = [...courses];
     const results = await Promise.allSettled(uploads.map(async ({ file }) => {
       const sample = await matchesSample(file, await sampleBytes);
       const subject = sample ? demoPaperSubject : '';
       const title = sample ? demoPaperTitle : fileTitle(file);
-      const candidates = courses.filter(course => normalized(course.name) === normalized(subject));
-      const target = candidates.length === 1 ? candidates[0] : null;
+      const assignment = assignDemoSubject(workingCourses, subject, subjectLimit, uid);
+      const target = assignment.course;
+      if (assignment.created) workingCourses.push(target);
       const existing = sample && target?.papers.find(paper => paper.sample && paper.filesStored);
       if (existing) return existing;
       const id = uid();
       await storePaperFiles(id, [file]);
       return { id, title, sample, uploadedAt, questions: [], filesStored: true, pages: [{ name: file.name }],
-        status: target ? '识别中' : '待归属', recognition: { subject, title: sample ? title : '', targetId: target?.id,
+        status: target ? '识别中' : '待归属', assignmentReason: assignment.reason, recognition: { subject, title: sample ? title : '', targetId: target?.id,
           targetLabel: target ? target.name + ' · ' + target.term : '' } };
     }));
     const papers = results.flatMap((result, index) => result.status === 'fulfilled' ? [result.value] : [{
@@ -416,7 +421,7 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
       status: '识别失败', questions: [], recognition: {}
     }]);
     setJobClock(Date.now());
-    setCourses(current => current.map(item => ({
+    setCourses(current => [...current, ...workingCourses.filter(item => !current.some(existing => existing.id === item.id))].map(item => ({
       ...item, papers: [...item.papers, ...papers.filter(paper => paper.recognition.targetId === item.id && !item.papers.some(previous => previous.id === paper.id))]
     })));
     setUnassignedPapers(current => [...current, ...papers.filter(item => !item.recognition.targetId)]);
@@ -429,15 +434,6 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
     go('papers');
   }
 
-  function assignPaper() {
-    const target = courses.find(item => item.id === assignment);
-    if (!target || !paper || paper.status !== '待归属') return;
-    const next = { ...paper, status: '识别中', recognition: { ...paper.recognition, targetId: target.id,
-      targetLabel: target.name + ' · ' + target.term } };
-    setCourses(current => current.map(item => item.id === target.id ? { ...item, papers: [...item.papers, next] } : item));
-    setUnassignedPapers(current => current.filter(item => item.id !== paper.id));
-    openPaper(target, next);
-  }
 
   const uploadResults = uploadIds.map(id => allPapers.find(paper => paper.id === id)).filter(Boolean);
   const recentPredictionCourse = courses.find(item => item.papers.some(p => uploadIds.includes(p.id) && p.sample));
@@ -486,13 +482,20 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
         <div className="step"><h2><b>1</b>选择科目</h2>{courseSelect}</div>
         {mode==='type' && <div className="step"><h2><b>2</b>选择题型</h2>{!course?<p>请先选择科目。</p>:!byType.length?<p>当前科目暂无可用题型。</p>:<div className="chips">{byType.map(t=><button key={t} className={t===type?'selected':''} onClick={()=>{setType(t);setPicked(course.papers.filter(p=>p.questions.some(q=>q.type===t)).map(p=>p.id));}}>{t}</button>)}</div>}</div>}
         <div className="step"><h2><b>{mode==='whole'?2:3}</b>选择试卷</h2>
-        {!course || (mode==='type'&&!type) ? <p>{course?'选择题型后显示匹配试卷。':'选择科目后显示该科目的试卷。'}</p> : !(mode==='whole'?course.papers:matching).length ? <p>暂无匹配试卷。</p> : (mode==='whole'?course.papers:matching).map(p=><label key={p.id} className="paper-row"><input type={mode==='whole'?'radio':'checkbox'} name="paper" checked={mode==='whole'?p.id===paperId:picked.includes(p.id)} disabled={!p.questions.length} onChange={()=>mode==='whole'?setPaperId(p.id):setPicked(old=>old.includes(p.id)?old.filter(id=>id!==p.id):[...old,p.id])}/><strong>{p.title}</strong><span>{mode==='whole'?(p.questions.length?'已练 '+count(p)+' / '+p.questions.length+' 题':'待核对') : p.questions.filter(q=>q.type===type).length+' 道'+type}</span></label>)}
+        {!course || (mode==='type'&&!type) ? <p>{course?'选择题型后显示匹配试卷。':'选择科目后显示该科目的试卷。'}</p> : !(mode==='whole'?course.papers:matching).length ? <p>暂无匹配试卷。</p> : (mode==='whole'?course.papers:matching).map(p=><label key={p.id} className="paper-row"><input type={mode==='whole'?'radio':'checkbox'} name="paper" checked={mode==='whole'?p.id===paperId:picked.includes(p.id)} onChange={()=>mode==='whole'?setPaperId(p.id):setPicked(old=>old.includes(p.id)?old.filter(id=>id!==p.id):[...old,p.id])}/><strong>{p.title}</strong><span>{mode==='whole'?(p.questions.length?'已练 '+count(p)+' / '+p.questions.length+' 题':'待核对') : p.questions.filter(q=>q.type===type).length+' 道'+type}</span></label>)}
         </div></section>
         <aside className="panel padded summary"><h2>本次练习</h2><dl><dt>科目</dt><dd>{course?.name || '请选择科目'}</dd><dt>{mode==='whole'?'试卷':'题型'}</dt><dd>{mode==='whole'?(paper?.title||'未选择'):(type||'未选择')}</dd><dt>范围</dt><dd>{mode==='whole'?(paper?.questions.length||0)+' 题':chosen.length+' 套原卷 · '+grouped.length+' 题'}</dd></dl>
         {mode==='whole'&&<label className="prototype-duration">模拟时长<select value={duration} onChange={event => setDuration(event.target.value)}><option value="original">按原卷时长</option><option value="">不限时</option><option value="90">90 分钟</option><option value="120">120 分钟</option></select></label>}
         {mode==='whole'?button(paper&&drafts[paper.id]?'继续答题':'开始整套答题',()=>openWhole(course,paper),'primary wide',!paper?.questions.length):button('开始背题',()=>start(type+'专项背诵',grouped,[courseId,type,...picked.slice().sort()].join('/'),'type'),'primary wide',!grouped.length)}
         <p>{mode==='whole'?'交卷后统一查看参考答案。':'先回忆或输入作答，再核对要点。'}</p></aside>
       </main>}
+
+      {screen==='practice' && mode==='whole' && paper && <section className="content">
+        {drafts[paper.id] ? <p role="status">本卷正在闭卷练习，请继续答题。交卷后可查看参考答案。</p>
+          : paper.questions.length ? <section className="panel padded"><h2>本卷题目</h2><PreviewSheet paper={paper} questions={paper.questions.map(q => canShowAnswer(q) ? q : { ...q, answer: '' })} recognized /></section>
+          : <section className="panel padded"><h2>{paper.title}</h2><p role="status">{paper.recognition?.targetId ? paperNext[paperState(paper)] : assignmentMessage({ ...paper, recognizedSubject: paper.recognition?.subject })}</p>
+            <p>当前演示只回放配套样卷，其他 PDF 只保留原卷，不虚构科目或题目。</p>{button('查看原卷',()=>go('reader'))}</section>}
+      </section>}
 
       {screen==='prediction' && <main className="content"><div className="intro"><div className="eyebrow">每科一套</div><h1>考题预测</h1><p>原卷识别结束后，系统自动为符合条件的科目生成一套预测卷。</p></div>
         <section className="panel padded"><h2>选择科目</h2>{courseSelect}
@@ -537,7 +540,7 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
 
       {screen==='papers' && <main className="content"><div className="intro"><div className="eyebrow">试卷归档</div><h1>试卷库</h1><p>按科目管理 PDF 原卷，查看识别进度和下一步。</p></div>
       {uploadResults.length > 0 && <section className="panel padded prototype-guide">
-        <h2>上传识别结果 <span className="badge blue">原型演示</span></h2>
+        <h2>上传处理进度 <span className="badge blue">原型演示</span></h2>
         <div className="pipeline-steps" aria-label="自动处理流程"><span>01 上传 PDF</span><span>02 识别科目与卷名</span><span>03 生成原卷答案与整套预测卷</span></div>
         <div role="status">{uploadResults.map(item => {
           const known = identified(item, jobClock);
@@ -562,14 +565,15 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
         {unassignedPapers.map(item => <div key={item.id} className="paper-row">
           <div className="grow"><strong>{identified(item,jobClock) ? item.title : item.pages[0].name}</strong><small>{identified(item,jobClock) ? paperNext[paperState(item)] : '正在识别卷面'}</small></div>
           {badge(identified(item,jobClock) ? paperState(item) : '识别中','amber')}
-          {item.filesStored ? button('查看原卷',()=>{setAssignment('');setPaperId(item.id);go('reader');}) : button('重新上传',openUpload)}
+          {item.filesStored ? button('查看原卷',()=>{setPaperId(item.id);go('reader');}) : button('重新上传',openUpload)}
         </div>)}
       </section>}
       <section className="panel padded"><div className="panel-head flush"><h2>原卷列表</h2>{courseSelect}</div>
       {(course?[course]:courses).flatMap(c=>c.papers.map(p=><div className="paper-row" key={p.id}><FileText size={22}/>
         <div className="grow"><strong>{c.name} · {identified(p,jobClock) ? p.title : p.pages[0].name}</strong><small>{paperNext[paperState(p)]}</small></div>
         {badge(paperState(p),paperState(p)==='可练习'?'green':'amber')}
-        {button('查看试卷',()=>openPaper(c,p),'secondary')}
+        {button('查看原卷',()=>openPaper(c,p),'secondary')}
+        {button('题目背诵',()=>browsePaper(c,p),'secondary')}
         {p.questions.length>0&&button('开始练习',()=>openWhole(c,p),'link')}
         {finished[p.id] && button('查看交卷结果',()=>openResult(p.id),'link')}
       </div>))}
@@ -578,32 +582,14 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
       {screen==='reader' && paper && <main className="content">
         {button('返回试卷库',()=>go('papers'),'secondary')}
         <div className="intro prototype-reader-title"><h1>{paper.title}</h1><p>{badge(paperState(paper),paperState(paper)==='可练习'?'green':'amber')}　{paperNext[paperState(paper)]}</p></div>
-        {paper.sample && paper.questions.length ? <>
-          <section className="panel padded prototype-guide"><div className="panel-head flush"><div><h2>试卷识别 · 全卷</h2><p>{demoPaperSubject} · {paper.recognition.targetLabel} · 印刷页码 1–2 · 共 {paper.questions.length} 题</p></div>{button('开始整套答题',()=>openWhole(course,paper),'primary')}</div></section>
-          {[1, 2].map(page => <div className="prototype-pair prototype-page-pair" key={page}>
-            <section className="panel padded"><div className="panel-head flush"><h2>原卷 · 第 {page} 页</h2>{sourceUrl && <a href={sourceUrl + '#page=' + page} target="_blank" rel="noreferrer">打开 PDF</a>}</div>
-              <img className="prototype-original-page" src={import.meta.env.BASE_URL + 'sample-page-' + page + '.png'} alt={'上传样卷原貌，第 ' + page + ' 页'} /></section>
-            <section className="panel padded"><h2>试卷识别 · 第 {page} 页</h2><PreviewSheet paper={paper} questions={paper.questions.filter(q => q.page === page).map(q => canShowAnswer(q) ? q : { ...q, answer: '' })} recognized/></section>
-          </div>)}
-        </> : paper.filesStored ? <div className="prototype-pair">
-          <section className="panel padded"><h2>原卷预览</h2>{sourceUrl ? <iframe className="source-file" title="原卷 PDF" src={sourceUrl}/> : <p role="status">{localPages.id===paper.id&&localPages.error || '正在读取原卷…'}</p>}</section>
-          <section className="panel padded form"><h2>试卷识别</h2>
-            <p>识别科目 {identified(paper,jobClock) ? paper.recognition.subject || '待确认' : '识别中'} · 识别卷名 {identified(paper,jobClock) ? paper.recognition.title || '待确认' : '识别中'}</p>
-            {paper.status === '待归属' && <><p>请选择归档课程。需要新课程时，可先到「学习进展」添加。</p>
-              <label>归档课程<select value={assignment} onChange={event=>setAssignment(event.target.value)}><option value="">请选择课程</option>{courses.map(c=><option key={c.id} value={c.id}>{c.name} · {c.term}</option>)}</select></label>
-              {button('确认归档',assignPaper,'primary',!assignment)}</>}
-            {paper.status === '待核对' && <><p>这份 PDF 已保存在本机。当前原型只回放配套样卷的识别结果。</p>{button('重新上传',openUpload)}</>}
+        {drafts[paper.id] ? <section className="panel padded"><p>本卷正在闭卷练习，原卷与答案暂时隐藏。</p>{button('继续答题',()=>openWhole(course,paper),'primary')}</section> : <>
+          {button('去题目背诵',()=>browsePaper(course,paper),'primary')}
+          <section className="panel padded"><h2>原卷预览</h2>
+            <p>题干、参考答案与知识点集中在「题目背诵」。</p>
+            {paper.sample ? [1,2].map(page => <img key={page} className="prototype-original-page" src={import.meta.env.BASE_URL + 'sample-page-' + page + '.png'} alt={'上传样卷原貌，第 ' + page + ' 页'} />)
+              : paper.filesStored ? (sourceUrl ? <iframe className="source-file" title="原卷 PDF" src={sourceUrl}/> : <p role="status">{localPages.id===paper.id&&localPages.error || '正在读取原卷…'}</p>)
+              : <PreviewSheet paper={paper} questions={paper.questions} />}
           </section>
-        </div> : <>
-          <section className="panel padded prototype-guide"><h2>试卷识别 · 全卷</h2><p>左侧查看原卷，右侧按原页展示题干和参考答案。</p>
-            {button('开始整套答题',()=>openWhole(course,paper),'primary')}</section>
-          {Array.from({length:Math.ceil(paper.questions.length/2)},(_, index)=>{
-            const pageQuestions=paper.questions.slice(index*2,index*2+2);
-            return <div className="prototype-pair prototype-page-pair" key={index}>
-              <section className="panel padded"><h2>原卷 · 第 {index+1} 页</h2><PreviewSheet paper={paper} questions={pageQuestions}/></section>
-              <section className="panel padded"><h2>试卷识别 · 第 {index+1} 页</h2><PreviewSheet paper={paper} questions={pageQuestions} recognized/></section>
-            </div>;
-          })}
         </>}
       </main>}
 
@@ -628,13 +614,7 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
         {badge(q.verified?'样卷已复核':'待核验',q.verified?'green':'amber')}
         <p>{q.options.length ? <ChoicePrompt question={q} number={i+1} value={q.answer} readOnly /> : q.answer || '暂无参考答案'}</p>
         <p>{q.explanation}</p>{q.topic&&<small>知识点 · {q.topic}</small>}
-        <details className="prototype-notes"><summary>个人答案与解析</summary>
-          <form className="form" onSubmit={event=>saveNotes(event,q)}>
-            <label>个人答案<textarea name="answer" defaultValue={personalNotes[q.id]?.answer ?? ''} /></label>
-            <label>个人解析<textarea name="explanation" defaultValue={personalNotes[q.id]?.explanation ?? ''} /></label>
-            <button type="submit">保存个人记录</button>
-          </form>
-        </details>
+        <DemoPersonalNotes question={q} notes={personalNotes[q.id]} onSave={saveNotes} />
         {session.kind !== 'redo' && (!mistakes[q.id] || mistakes[q.id].manualOnly) && button(mistakes[q.id]?.manualOnly?'取消手动收录':'加入错题本',()=>toggleManual(q),'link')}
         {session.kind === 'type' && !session.submitted && <div className="chips">{button('能独立说出',()=>selfAssess(q,'已掌握'))}{button('漏了部分',()=>selfAssess(q,'待巩固'))}{button('还想不起来',()=>selfAssess(q,'待巩固'))}</div>}
       </div> : <div className="feedback" role="status">参考答案和知识点生成中，完成后会在此补齐。</div>)}
@@ -662,7 +642,7 @@ export function App({ account, onAdmin, onLogin, onLogout }) {
       </div>
     </form>}
     {dialog==='upload'&&<form className="form" onSubmit={addPaper}><h2>上传试卷</h2>
-      <p>只支持 PDF，单次最多 30 份，每份最多 50 MB，独立处理。模型从卷面识别科目和试卷名称，唯一匹配时自动归档。</p>
+      <p>只支持 PDF，单次最多 30 份，每份最多 50 MB，独立处理。模型从卷面识别并自动归属科目。题目直接在题目背诵展示。</p>
       <div className="sample-box"><strong>体验完整自动流程</strong><p>上传配套样卷后会回放识别、原卷解析与整套预测结果。你也可以选本机 PDF 预览。</p>
         <a href={samplePdfUrl} download="demo-upload.pdf">下载演示 PDF</a>
         {button('选用演示 PDF',async()=>{

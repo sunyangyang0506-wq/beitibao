@@ -1,0 +1,193 @@
+import React, { useEffect, useState } from 'react';
+import { RecallQuestion } from './QuestionRecall.jsx';
+import { assignmentMessage } from './paper-assignment.js';
+
+const active = value => ['queued', 'processing'].includes(value?.status);
+const pageFailure = {
+  MODEL_BUDGET_LIMIT: '今天的模型识别额度已用完。',
+  MODEL_RATE_LIMIT: '模型请求过多，请稍后重试。',
+  OCR_NOT_CONFIGURED: '自动识别服务尚未配置。',
+  OCR_ACCESS_DENIED: '识别服务暂不可用。服务恢复后可重试。',
+  OCR_INCOMPLETE_OPTIONS: '本页有选择题缺少选项。',
+  OCR_TIMEOUT: '本页处理超时。'
+};
+
+// Source management lives in the library; recognized questions live in study.
+// Both modes use the same closed-book guard returned by the server.
+export function PaperStudy({ api, csrf, paperId, onExpired, onBack, onPractice, onBrowse,
+  onMistakes, notice, courses = [], study = false, embedded = false }) {
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+  const [recoveryNotice, setRecoveryNotice] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [reload, setReload] = useState(0);
+  const [duration, setDuration] = useState('');
+  const path = '/papers/' + paperId;
+  useEffect(() => {
+    const controller = new AbortController();
+    let timer;
+    async function load() {
+      try {
+        const details = await api(path, { signal: controller.signal });
+        if (controller.signal.aborted) return;
+        setResult(details);
+        if (active(details.paper) || details.pageReviews?.some(active)) timer = setTimeout(load, 1500);
+      } catch (failure) {
+        if (controller.signal.aborted) return;
+        if (failure.status === 401) onExpired();
+        else setError(failure.message);
+      }
+    }
+    load();
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [api, path, reload, onExpired]);
+
+  async function act(suffix, data = {}) {
+    setBusy(true); setError(''); setRecoveryNotice('');
+    try {
+      const response = await api(path + suffix, { data, csrf });
+      if (suffix === '/publish-saved-recognition') setRecoveryNotice(response.pending
+        ? `已整理 ${response.published} 道题，另有 ${response.pending} 道题的保存结果不完整，暂未发布。原始结果已保留，请核对原卷并补充清晰材料。`
+        : '已有识别结果已整理，可在下方背诵。');
+      if (suffix === '/delete') onBack();
+      else setReload(value => value + 1);
+    } catch (failure) {
+      if (failure.status === 401) onExpired();
+      else setError(failure.message);
+    } finally { setBusy(false); }
+  }
+
+  const paper = result?.paper;
+  const course = courses.find(item => item.id === paper?.courseId);
+  const pending = result?.pageReviews?.filter(page => !page.reviewedAt) ?? [];
+  const processing = active(paper) || pending.some(active);
+  const pageOrder = paper?.pageOrder?.length ? paper.pageOrder : paper?.pages?.map((_, index) => index + 1) ?? [];
+  const ready = Boolean(paper?.courseId && paper.status === 'review' && !paper.missingPages &&
+    !pending.length && result?.questions?.length);
+  const Container = embedded ? 'section' : 'main';
+  return <Container className={embedded ? 'pc-study-paper' : 'content'}>
+    {onBack && <button onClick={onBack}>{study ? '返回题目背诵' : '返回试卷库'}</button>}
+    <div className="intro pc-review-title"><h1>{paper?.title?.replace(/\\[nr]/g, ' ') ?? '正在读取试卷…'}</h1>
+      {paper && <p>{course?.name || paper.recognizedSubject || '科目待确认'}{course && ' · ' + course.term} · {processing ? '正在自动整理题目…' :
+        !paper.courseId ? assignmentMessage(paper) : '已归属科目'}</p>}
+    </div>
+    {notice && <p role="status">{notice}</p>}
+    {error && <p role="alert">{error} <button onClick={() => { setError(''); setReload(value => value + 1); }}>重新读取</button></p>}
+    {result?.closedBook ? <p role="status">本卷正在闭卷练习。交卷后可查看原卷与答案。
+      <button onClick={() => onPractice(paperId)}>继续整套答题</button></p> : <>
+      {paper && !processing && !paper.courseId && <p role="status">题目和原卷已保留，不会猜测科目。
+        <button disabled={busy} onClick={() => act('/retry-assignment')}>重新自动归属</button></p>}
+      <PaperProcessingRecovery result={result} busy={busy} onRetry={() => act('/retry-recognition')} />
+      <SavedImageRecovery result={result} busy={busy} onPublish={() => act('/publish-saved-recognition')} />
+      {recoveryNotice && <p role="status">{recoveryNotice}</p>}
+      <PendingPageRecovery pages={pending} busy={busy} onRetry={page => act('/pages/' + page + '/recognition')} />
+      {paper?.missingPages && <p role="status">原卷有缺页，请补齐后上传完整 PDF。已有题目仍可背诵。</p>}
+      {result && <div className="pc-dialog-actions">
+        <label>整套练习计时<select value={duration} onChange={event => setDuration(event.target.value)}><option value="">不限时</option>{[30,60,90,120].map(minutes => <option key={minutes} value={minutes}>{minutes} 分钟</option>)}</select></label>
+        <button className="primary" disabled={!ready || busy} onClick={() => onPractice(paperId, duration ? Number(duration) : undefined)}>开始整套答题</button>
+        {!study && <button onClick={() => onBrowse(paperId)}>去题目背诵</button>}
+      </div>}
+      {study && <StudyQuestions result={result} paperId={paperId} api={api} csrf={csrf}
+        onExpired={onExpired} onMistakes={onMistakes} />}
+      {!study && paper && <section className="panel padded">
+        <h2>原卷预览</h2>
+        <p>题干、参考答案与知识点已集中到「题目背诵」。</p>
+        <div className="chips">{pageOrder.map((page, index) => <button key={page}
+          onClick={() => document.getElementById('source-page-' + page)?.scrollIntoView({ block: 'start' })}>第 {index + 1} 页</button>)}</div>
+        {pageOrder.map((page, index) => <section key={page} id={'source-page-' + page}>
+          <h3>原卷 · 第 {index + 1} 页</h3>
+          <PaperPageImage src={'/api/v1' + path + '/pages/' + page} alt={'原卷第 ' + (index + 1) + ' 页'} />
+        </section>)}
+        {paper.status === 'review' && <details><summary>调整原卷页序与缺页状态</summary>
+          <p>仅在原卷页序有误时调整，题目保留与原文件的对应关系。</p>
+          {pageOrder.map((page, index) => <div className="pc-dialog-actions" key={page}>原文件第 {page} 页
+            {[-1, 1].map(delta => <button key={delta} disabled={busy || index + delta < 0 || index + delta >= pageOrder.length}
+              onClick={() => {
+                const next = [...pageOrder];
+                [next[index], next[index + delta]] = [next[index + delta], next[index]];
+                act('/review-state', { revision: paper.reviewRevision, missingPages: paper.missingPages, pageOrder: next });
+              }}>{delta < 0 ? '上移' : '下移'}</button>)}
+          </div>)}
+          <button disabled={busy} onClick={() => act('/review-state', { revision: paper.reviewRevision, missingPages: !paper.missingPages })}>
+            {paper.missingPages ? '确认卷面齐全' : '标记试卷缺页'}</button>
+        </details>}
+      </section>}
+    </>}
+    {!study && paper?.sharedAtSchool && <button disabled={busy} onClick={() => act('/revoke-school-sharing')}>撤回校内共享授权</button>}
+    {!study && result?.canDelete && <details><summary>删除试卷</summary><form onSubmit={event => { event.preventDefault(); act('/delete', { confirmed: true }); }}>
+      <label className="pc-check"><input type="checkbox" required />确认删除原卷、相关作答和引用本卷的预测卷。</label>
+      <button disabled={busy}>确认删除</button></form></details>}
+  </Container>;
+}
+
+export function PaperProcessingRecovery({ result, busy, onRetry }) {
+  const paper = result?.paper;
+  if (!paper || result.closedBook) return null;
+  const image = ['image/png', 'image/jpeg'].includes(paper.mediaType);
+  // Older private image uploads retained their readable original as review even
+  // when OCR failed. They use the existing retry endpoint, not PDF page recovery.
+  const legacyImageFailure = image && paper.status === 'review' &&
+    ['OCR_FAILED', 'OCR_NOT_CONFIGURED'].includes(paper.failure) && result.questions?.length === 0;
+  if (paper.status !== 'failed' && !legacyImageFailure) return null;
+  const canRetry = paper.failure === 'PAPER_ORIGINAL_UNAVAILABLE' || (image && paper.modelAvailable !== false);
+  return <p role="alert">
+    {image ? '原卷图片尚未生成可背诵题目。' : '原卷处理失败，请检查 PDF 是否完整、清晰且未加密。'}
+    {paper.failure === 'OCR_NOT_CONFIGURED' && '图片识别服务尚未配置，服务恢复后可重试。'}
+    {image && paper.modelAvailable === false && '当前未开放或未授权模型处理，原卷已保留。'}
+    {canRetry && <button disabled={busy} onClick={onRetry}>重试处理原卷</button>}
+  </p>;
+}
+
+export function PendingPageRecovery({ pages, busy, onRetry }) {
+  return pages.filter(page => ['failed', 'review'].includes(page.status)).map(page =>
+    <p role={page.status === 'failed' ? 'alert' : 'status'} key={page.page}>
+      第 {page.page} 页：{page.status === 'review' ? '已有结果待整理，可继续处理后加入题目背诵。' : pageFailure[page.failure] ?? '题目整理失败。'}
+      <button disabled={busy} onClick={() => onRetry(page.page)}>{page.status === 'review' ? '重新整理本页' : '重试本页'}</button>
+    </p>);
+}
+
+export function SavedImageRecovery({ result, busy, onPublish }) {
+  const paper = result?.paper;
+  if (!paper || result.closedBook || paper.status !== 'review' ||
+      !['image/png', 'image/jpeg'].includes(paper.mediaType)) return null;
+  // The server uses the same normalization as publication and excludes existing
+  // questions and human decisions. Counts therefore survive a page refresh.
+  const { publishable = 0, pending = 0 } = result.savedImageRecovery ?? {};
+  if (!publishable && !pending) return null;
+  return <p role="status">
+    {publishable > 0 && <>已有 {publishable} 道识别结果待整理。只使用保存结果，不重新调用模型，历史记录保持不变。
+      <button disabled={busy} onClick={onPublish}>整理已有题目</button></>}
+    {pending > 0 && <>另有 {pending} 道题的保存结果不完整，原始结果已保留，请核对原卷并补充清晰材料。</>}
+  </p>;
+}
+
+export function orderedStudyQuestions(questions, pageOrder) {
+  if (!pageOrder?.length) return questions;
+  const positions = new Map(pageOrder.map((page, index) => [page, index]));
+  // pageNumber is the original-file anchor, including cross-page questions.
+  // Reorder the view, never the stored question or its source-page references.
+  return [...questions].sort((left, right) =>
+    (positions.get(left.pageNumber) ?? pageOrder.length + left.pageNumber) -
+    (positions.get(right.pageNumber) ?? pageOrder.length + right.pageNumber));
+}
+
+export function StudyQuestions({ result, paperId, api, csrf, onExpired, onMistakes }) {
+  if (!result) return <p role="status">正在读取题目…</p>;
+  if (result.closedBook) return <p role="status">闭卷练习中，题目与答案预览已隐藏。</p>;
+  if (!result.questions?.length) return <p role="status">暂无可背诵题目。已上传的原卷会保留，处理成功后题目自动出现在这里。</p>;
+  return <section className="panel padded" aria-label="本卷题目">
+    <h2>本卷题目 · {result.questions.length} 题</h2>
+    <p>先回忆，再逐题查看答案和知识点。</p>
+    {orderedStudyQuestions(result.questions, result.paper.pageOrder).map(question => <div key={question.id + ':' + (question.inputRevision ?? 1)}><RecallQuestion
+      question={{ ...question, paperTitle: result.paper.title }} path={'/papers/' + paperId + '/questions/' + question.id}
+      api={api} csrf={csrf} onExpired={onExpired} onMistakes={onMistakes} />
+      <details><summary>查看本题原卷</summary>{(question.sourcePages?.length ? question.sourcePages : [question.pageNumber]).map(page =>
+        <a key={page} href={'/api/v1/papers/' + paperId + '/pages/' + page} target="_blank" rel="noreferrer">原文件第 {page} 页 </a>)}</details></div>)}
+  </section>;
+}
+
+function PaperPageImage({ src, alt }) {
+  const [unavailable, setUnavailable] = useState(false);
+  return unavailable ? <p role="alert">原页暂时无法加载。<button onClick={() => setUnavailable(false)}>重试原页</button></p>
+    : <img loading="lazy" className="pc-paper-preview" src={src} alt={alt} onError={() => setUnavailable(true)} />;
+}

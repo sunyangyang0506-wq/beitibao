@@ -16,7 +16,7 @@ test('sends the selected image to the pinned model and rejects incomplete output
       content: JSON.stringify({ questions: [{ stem: ' 题干 ', visualContext: ' A → B，权重 3 ' }] })
     } }] });
   });
-  assert.deepEqual(output, { model: 'qwen3.5-flash-2026-02-23', promptVersion: 'image-questions-v23', stems: ['题干'], visualContexts: ['A → B，权重 3'], questionBoxes: [null],
+  assert.deepEqual(output, { model: 'qwen3.5-flash-2026-02-23', promptVersion: 'image-questions-v24', stems: ['题干'], visualContexts: ['A → B，权重 3'], questionBoxes: [null],
     figures: [[{ box: null, initial: null, reread: null, status: 'needs_review', reason: 'location' }]], resolvedContexts: [''] });
   await assert.rejects(recognizeImage(image, 'image/png', async () =>
     Response.json({ choices: [{ finish_reason: 'length' }] })), /OCR_INVALID_OUTPUT/);
@@ -309,4 +309,15 @@ test('surfaces denied model access without retrying the page', async () => {
     return Response.json({ error: { code: 'AccessDenied.Unpurchased' } }, { status: 403 });
   }), /OCR_ACCESS_DENIED/);
   assert.equal(calls, 1);
+});
+
+test('extracts only validated subject, term and teacher metadata from synthetic output', async () => {
+  process.env.BAILIAN_WORKSPACE_ID='workspace-test';process.env.DASHSCOPE_API_KEY='synthetic-test-key';
+  const image=await sharp({create:{width:100,height:100,channels:3,background:'white'}}).png().toBuffer();
+  const recognize=metadata=>recognizeImage(image,'image/png',async()=>Response.json({choices:[{finish_reason:'stop',message:{
+    content:JSON.stringify({questions:[],...metadata})}}]}));
+  const known=await recognize({paperSubject:'数学',paperTerm:' ２０２６ 秋 ',paperTeacher:' 张老师 '});
+  assert.equal(known.paperTerm,'2026 秋');assert.equal(known.paperTeacher,'张老师');
+  const unknown=await recognize({paperTerm:'unknown',paperTeacher:'张\u0000老师'});
+  assert.equal(unknown.paperTerm,undefined);assert.equal(unknown.paperTeacher,undefined);
 });

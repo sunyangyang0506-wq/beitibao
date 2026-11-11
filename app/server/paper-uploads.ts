@@ -20,7 +20,7 @@ type Upload = {
   byte_count: number; fingerprint: string; model_allowed: boolean; auto_title: boolean; share_school_id: string | null; expires_at: Date; paper_id: string | null;
 };
 
-export const paperFields = 'id, course_id AS "courseId", title, recognized_subject AS "recognizedSubject", school_reuse AS "schoolReuse", share_school_id IS NOT NULL AS "sharedAtSchool", status, failure, media_type AS "mediaType", page_order AS "pageOrder", missing_pages AS "missingPages", review_revision AS "reviewRevision"';
+export const paperFields = 'id, course_id AS "courseId", title, recognized_subject AS "recognizedSubject", CASE WHEN course_id IS NOT NULL THEN \'assigned\' ELSE assignment_reason END AS "assignmentReason", school_reuse AS "schoolReuse", share_school_id IS NOT NULL AS "sharedAtSchool", status, failure, media_type AS "mediaType", page_order AS "pageOrder", missing_pages AS "missingPages", review_revision AS "reviewRevision"';
 const uuid = { type: 'string', format: 'uuid' };
 export const uploadCourse = { anyOf: [uuid, { type: 'string', const: 'auto' }] };
 const security = [{ session: [] }];

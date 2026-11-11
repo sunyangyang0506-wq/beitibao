@@ -94,3 +94,15 @@ GRANT SELECT, INSERT, DELETE ON model_rate_events TO :"worker_role";
   DROP POLICY IF EXISTS prediction_release_worker ON predictions;
   CREATE POLICY prediction_release_worker ON predictions TO :"worker_role" USING (true) WITH CHECK (true);
 \endif
+
+\if :paper
+  GRANT SELECT (teacher, term) ON courses TO :"worker_role";
+  GRANT SELECT (subject_limit) ON accounts TO :"worker_role";
+  GRANT INSERT ON courses TO :"worker_role";
+  GRANT UPDATE (assignment_reason) ON papers TO :"worker_role";
+\elif :page
+  GRANT SELECT (teacher, term) ON courses TO :"worker_role";
+  GRANT SELECT (subject_limit) ON accounts TO :"worker_role";
+  GRANT INSERT ON courses TO :"worker_role";
+  GRANT UPDATE (assignment_reason) ON papers TO :"worker_role";
+\endif

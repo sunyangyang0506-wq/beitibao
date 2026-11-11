@@ -1,5 +1,6 @@
 import type { Pool } from 'pg';
 import { asTenant } from './db.js';
+import { lockSubjectCreation } from './subject-assignment.js';
 
 export type CourseInput = { name: string; term: string; teacher?: string };
 type Course = Required<CourseInput> & { id: string };
@@ -16,6 +17,7 @@ export async function saveCourse(pool: Pool, tenantId: string, input: CourseInpu
       || [name, teacher, term].some((value) => value.includes('\u0000'))) return null;
 
   return asTenant(pool, tenantId, async (db) => {
+    await lockSubjectCreation(db, tenantId);
     const { rows: [account] } = await db.query<{ subject_limit: number | null }>(
       'SELECT subject_limit FROM accounts WHERE id = $1 FOR UPDATE', [tenantId]);
     if (!account) return null;

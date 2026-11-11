@@ -27,11 +27,11 @@ const messages = {
   INVALID_SOURCE_PAGES: '请选择本卷有效的关联原页。',
   EQUIVALENCE_CONFLICT: '这道题已参与其他等价关系，请先检查现有关系。',
   EQUIVALENCE_KIND_MISMATCH: '请先核对两道题的题型。',
-  PRACTICE_NOT_FOUND: '请先在试卷核对页确认至少一道题。',
+  PRACTICE_NOT_FOUND: '本卷题目还未就绪，请在题目背诵查看处理状态。',
   PRACTICE_CONFLICT: '另一窗口已更新草稿，请合并后再保存。',
   CLOSED_BOOK_ACTIVE: '本卷正在闭卷练习。交卷后可以查看原页与答案。',
   PRACTICE_SUBMITTED: '这份作答已提交，请重新载入查看。',
-  PREDICTION_NO_EVIDENCE: '请先上传试卷并确认题目。',
+  PREDICTION_NO_EVIDENCE: '请先上传试卷，等待题目自动整理完成。',
   PREDICTION_NOT_RELEASED: '预测卷生成尚未开放。',
   INVALID_PAPER_UPLOAD: '请检查学校、试卷名称和文件大小。',
   INVALID_PAPER_OBJECT: '文件校验失败，请重新选择并上传。',
@@ -263,6 +263,7 @@ function Progress({ session, onExpired }) {
     dismissGuide();
   }
 
+  const [browseId, setBrowseId] = useState('');
   const [practice, setPractice] = useState(() => new URL(location.href).searchParams.get('practice'));
 
   const [showMistakes, setShowMistakes] = useState(false);
@@ -275,7 +276,12 @@ function Progress({ session, onExpired }) {
     setShowPrediction(true);
   }
 
+  function openBrowse(paperId) {
+    openPractice(''); setBrowseId(paperId); reload();
+  }
+
   function openPractice(paperId, durationMinutes) {
+    setBrowseId('');
     setShowMistakes(false);
     setShowPrediction(false);
     const url = new URL(location.href);
@@ -332,7 +338,7 @@ function Progress({ session, onExpired }) {
       <div className="nav-label">复习工作区</div>
       <button className={showPrediction || showMistakes || libraryCourse || practice !== null ? "nav" : "nav active"} aria-current={showPrediction || showMistakes || libraryCourse || practice !== null ? undefined : "page"} onClick={() => { openPractice(null); setLibraryCourse(null); reload(); }}><ChartBar size={21} />学习进展</button>
       <button className={practice !== null ? "nav active" : "nav"} aria-current={practice !== null ? "page" : undefined}
-        onClick={() => openPractice('')}><BookOpen size={21} />题目背诵</button>
+        onClick={() => { openPractice(''); reload(); }}><BookOpen size={21} />题目背诵</button>
       <button className={showMistakes ? "nav active" : "nav"} aria-current={showMistakes ? "page" : undefined}
         onClick={openMistakes}><ClipboardText size={21} />错题本</button>
       <button className={showPrediction ? "nav active" : "nav"} aria-current={showPrediction ? "page" : undefined}
@@ -354,9 +360,9 @@ function Progress({ session, onExpired }) {
         onOpen={openPractice} onExpired={onExpired} />
       : showMistakes ? <Mistakes onPractice={() => openPractice('')} api={api} csrf={session.csrfToken} onExpired={onExpired} />
       : practice !== null ? <Practice onMistakes={openMistakes} key={practice} paperId={practice} api={api} csrf={session.csrfToken}
-        courses={progress?.courses ?? []} onOpen={openPractice} onExpired={onExpired} />
+        courses={progress?.courses ?? []} browseId={browseId} onUpload={startUploadGuide} onOpen={openPractice} onExpired={onExpired} />
       : libraryCourse ? <PaperLibrary onMistakes={openMistakes} onPrediction={openPrediction} api={api} csrf={session.csrfToken}
-        guided={guidedLibrary} courses={progress?.courses ?? []} courseId={libraryCourse} onCourse={setLibraryCourse} onExpired={onExpired} onPractice={openPractice} />
+        onBrowse={openBrowse} guided={guidedLibrary} courses={progress?.courses ?? []} courseId={libraryCourse} onCourse={setLibraryCourse} onExpired={onExpired} onPractice={openPractice} />
       : <main className="content">
         <div className="intro"><div className="eyebrow">复习总览</div><h1>学习进展</h1><p>查看每门科目的原卷复习状态。</p></div>
         {notice && <p className="pc-status" role="status">{notice}</p>}
@@ -386,7 +392,7 @@ function Progress({ session, onExpired }) {
                   {course.draftPaperId ? '继续答题' : course.totalPapers ? '查看试卷' : '上传试卷'}</button></td>
               </tr>)}
               {!progress?.courses.length && <tr><td colSpan={5}>
-                {progress ? '还没有科目，可以先添加一门。' : error ? '暂未获取到进展。' : '正在读取学习进展…'}
+                {progress ? '还没有科目，上传试卷后会自动识别并创建。也可手动添加。' : error ? '暂未获取到进展。' : '正在读取学习进展…'}
               </td></tr>}
             </tbody>
           </table>

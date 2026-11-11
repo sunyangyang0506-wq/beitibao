@@ -125,7 +125,7 @@ export function PrototypeAccess() {
         {invitations.length ? invitations.slice(0, 50).map(item => <div className="paper-row" key={item.phone + item.expiresAt}><strong className="grow">{mask(item.phone)}</strong><span>上限 {item.limit} 门</span><span className="badge">{item.used ? '已使用' : item.expiresAt <= Date.now() ? '已过期' : '待使用'}</span></div>) : <p>生成的邀请会显示在这里。</p>}
       </section>
     </main> : <main className="content access-landing">
-      <section className="access-intro"><div className="eyebrow">学员端 · 期末复习</div><h1>从一份原卷开始复习</h1><p>上传 PDF 后查看试卷识别、参考答案和整套预测卷。交卷后，按题型和错题时间回到需要复习的题。</p></section>
+      <section className="access-intro"><div className="eyebrow">学员端 · 期末复习</div><h1>从一份原卷开始复习</h1><p>上传 PDF 后自动归属科目，在题目背诵查看题目与参考答案，并练习整套预测卷。交卷后，按题型和错题时间回到需要复习的题。</p></section>
       <form className="panel padded form" key={view} onSubmit={authenticate}>
         <div className="metric-icon"><Key size={23} /></div>
         <h2>{activating ? '接受邀请' : '手机号登录'}</h2>

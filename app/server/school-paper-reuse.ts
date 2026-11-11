@@ -1,3 +1,4 @@
+import { resolveRecognizedCourse, type Assignment } from './subject-assignment.js';
 import { createHash } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import { asTenant, lockCourseMaterial } from './db.js';
@@ -15,7 +16,7 @@ type Source = {
   id: string; tenant_id: string; paper_id: string; file_hash: string; page_hashes: string[]; subject_key: string | null; content_key: string; created_at: Date;
   course_id: string | null; recognized_subject: string | null; page_order: number[] | null; status: string; missing_pages: boolean;
 };
-type Target = { tenant_id: string; id: string; course_id: string | null; fingerprint: string; school_page_hashes: string[] | null };
+type Target = { auto_assignment?: boolean; tenant_id: string; id: string; course_id: string | null; fingerprint: string; school_page_hashes: string[] | null };
 
 export const reuseDigest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const reuseWaitMs = 20 * 60_000;
@@ -152,7 +153,7 @@ export async function applySchoolPdf(db: PoolClient, target: Target, lease: stri
       WHERE i.page_hashes[n::int]=page.hash) DESC, i.created_at, i.id LIMIT 30
   `, [school, schoolRenderVersion, hashes[0], tenant, target.id, contentKey, targetSubject, hashes]);
 
-  let exact: { source: Source; subject: string; complete: boolean } | null = null;
+  let exact: { source: Source; subject: string; complete: boolean; cover: Recognition | null } | null = null;
   const exactSubjects = new Set<string>();
   let partial: { id: string; pages: Page[] } | null = null;
   let wait = false;
@@ -170,7 +171,7 @@ export async function applySchoolPdf(db: PoolClient, target: Target, lease: stri
       if (subject) exactSubjects.add(subject);
       if (subject && readyOriginal(source, material)) {
         const complete = material.questions.every(question => usableSolution(question.model_solution));
-        if (!exact || (complete && !exact.complete)) exact = { source, subject, complete };
+        if (!exact || (complete && !exact.complete)) exact = { source, subject, complete, cover: material.pages.find(page => page.page_number === 1)?.original_recognition ?? null };
       }
     }
     if (subject && (targetSubject === subject || (!targetSubject && courses.some(course => subjectKey(course.name) === subject)))) {
@@ -182,8 +183,11 @@ export async function applySchoolPdf(db: PoolClient, target: Target, lease: stri
 
   if (!targetSubject && exactSubjects.size > 1) { exact = null; wait = false; }
   if (exact?.complete) wait = false;
-  const chosen = exact ? courses.filter(course => subjectKey(course.name) === exact.subject) : [];
-  const courseId = target.course_id ?? (chosen.length === 1 ? chosen[0]!.id : null);
+  await db.query('SAVEPOINT school_assignment');
+  const assignment: Assignment = !target.course_id && target.auto_assignment && exact && !wait
+    ? await resolveRecognizedCourse(db, tenant, exact.cover?.paperSubject && subjectKey(exact.cover.paperSubject) === exact.subject ? exact.cover : {})
+    : { courseId: target.course_id, reason: 'unknown' };
+  const courseId = target.course_id ?? assignment.courseId;
   if (courseId && (exact || partial)) await lockCourseMaterial(db, tenant, courseId);
   // Take the course lock before locking a source paper. Page publication uses the same order.
   const exactSource = exact && !wait ? await lockSource(db, exact.source.id) : null;
@@ -197,17 +201,27 @@ export async function applySchoolPdf(db: PoolClient, target: Target, lease: stri
   }
   const { rows: [current] } = await db.query<{ share_school_id: string | null }>(
     'SELECT share_school_id FROM papers WHERE tenant_id=$1 AND id=$2 AND lease_id=$3 FOR UPDATE', [tenant, target.id, lease]);
-  if (!current) return { state: 'waiting' };
+  if (!current) {
+    await db.query('ROLLBACK TO SAVEPOINT school_assignment');
+    return { state: 'waiting' };
+  }
   await db.query('UPDATE papers SET school_page_hashes=$3 WHERE tenant_id=$1 AND id=$2', [tenant, target.id, hashes]);
   if (wait) {
     await db.query("UPDATE papers SET lease_until=now() + interval '5 seconds' WHERE tenant_id=$1 AND id=$2", [tenant, target.id]);
     return { state: 'waiting' };
   }
   if (exactSource && exactMaterial?.subject && exactMaterial.subjectAgrees && subjectKey(exactMaterial.subject) === exact?.subject &&
-      readyOriginal(exactSource, exactMaterial)) {
-    return { state: 'copied', courseId: await copyOriginal(db, target, exactSource, exactMaterial, courseId, text, modelsEnabled) };
+      readyOriginal(exactSource, exactMaterial) && JSON.stringify(exactMaterial.pages.find(page => page.page_number === 1)?.original_recognition ?? null) === JSON.stringify(exact?.cover)) {
+    const assigned = await copyOriginal(db, target, exactSource, exactMaterial, courseId, text, modelsEnabled);
+    await db.query('UPDATE papers SET assignment_reason=$3 WHERE tenant_id=$1 AND id=$2',
+      [tenant, target.id, assigned ? 'assigned' : courseId ? 'duplicate' : assignment.reason]);
+    return { state: 'copied', courseId: assigned };
   }
 
+  if (!target.course_id && assignment.courseId) {
+    await db.query('ROLLBACK TO SAVEPOINT school_assignment');
+    await db.query('UPDATE papers SET school_page_hashes=$3 WHERE tenant_id=$1 AND id=$2', [tenant, target.id, hashes]);
+  }
   if (modelsEnabled && current.share_school_id === school) {
     await db.query(`
       INSERT INTO school_paper_index (school_id,tenant_id,paper_id,file_hash,render_version,page_hashes,content_key,subject_key)
