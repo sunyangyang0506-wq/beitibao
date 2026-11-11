@@ -261,7 +261,7 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     const confirmed = await request(owner, 'POST', path + '/questions', question);
     assert.equal(confirmed.statusCode, 201);
     assert.equal((await request(owner, 'POST', path + '/questions', question)).json().reused, true);
-    assert.deepEqual((await request(owner, 'GET', path)).json().questions, [{ ...question, id: confirmed.json().id, kind: 'other' }]);
+    assert.deepEqual((await request(owner, 'GET', path)).json().questions, [{ ...question, id: confirmed.json().id, inputRevision: 1, kind: 'other' }]);
     assert.equal((await request(owner, 'GET', '/progress')).json().courses[0].totalPapers, 1);
 
     assert.equal(await processNextSolution(worker, async () => { throw new Error('unexpected model call'); }), false);
@@ -570,8 +570,9 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.equal((await request(owner, 'POST', referencePath, { ...reference, answers: ['6 cm'] })).statusCode, 200);
     const changed = (await request(owner, 'GET', mixed + '/practice')).json().questions.find(item => item.id === crossPage);
     assert.equal(changed.referenceChanged, true);
-    assert.equal(changed.result, 'needs_review');
+    assert.equal(changed.result, 'incorrect'); // Saved grade stays tied to the original teacher answer.
     assert.deepEqual(changed.reference, reference);
+    assert.equal((await admin.query('SELECT graded->>$2 AS grade FROM practice_results WHERE paper_id=$1', [mixedUpload.json().paper.id, crossPage])).rows[0].grade, 'incorrect');
     assert.equal((await request(owner, 'POST', retryPath, { ...wrong, attemptKey: randomUUID() })).json().result, 'needs_review');
 
     const variant = Buffer.concat([pdf, Buffer.from('\n% independently uploaded variant\n')]);
@@ -580,6 +581,20 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.equal(await processNextPaper(worker), true);
     const linkedQuestion = (await request(owner, 'POST', variantPath + '/questions', question)).json().id;
     assert.equal((await request(owner, 'POST', variantPath + '/questions/' + linkedQuestion + '/kind', { kind: 'short_answer' })).statusCode, 200);
+    // The original question changed from other to short_answer above. Its old
+    // attempt must not count as current coverage until the new input is practised.
+    const beforeKindRetake = (await request(owner, 'GET', '/progress')).json().courses.find(item => item.id === course.json().course.id);
+    const kindRetakeResponse = await request(owner, 'POST', practicePath, {});
+    assert.equal(kindRetakeResponse.statusCode, 200, kindRetakeResponse.body);
+    const kindRetake = kindRetakeResponse.json();
+    assert.notEqual(kindRetake.attemptId, attempt.attemptId);
+    assert.equal(kindRetake.questions[0].kind, 'short_answer');
+    const kindSubmission = await request(owner, 'POST', practicePath + '/save', {
+      revision: kindRetake.revision, answers, submit: true
+    });
+    assert.equal(kindSubmission.statusCode, 200, kindSubmission.body);
+    const afterKindRetake = (await request(owner, 'GET', '/progress')).json().courses.find(item => item.id === course.json().course.id);
+    assert.equal(afterKindRetake.completedPapers, beforeKindRetake.completedPapers + 1);
     const equivalents = questionPath + '/equivalences';
     const priorCoverage = (await request(owner, 'GET', '/progress')).json().courses.find(item => item.id === course.json().course.id);
     assert.equal((await request(other, 'GET', equivalents)).statusCode, 404);
@@ -644,7 +659,8 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     assert.equal((await request(owner, 'POST', editPath, { stem: 'Corrected in practice.' })).json().stemCorrection, 'Corrected in practice.');
     const during = (await request(owner, 'GET', unorderedPath + '/practice')).json().questions[0];
     assert.equal(during.stem, first.stem);
-    assert.equal(during.stemCorrection, 'Corrected in practice.');
+    assert.equal(during.inputChanged, true);
+    assert.equal(during.stemCorrection, undefined);
     assert.equal(during.reference, undefined);
 
 

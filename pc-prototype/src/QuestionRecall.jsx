@@ -69,6 +69,7 @@ export function QuestionRecall({ papers, api, csrf, onExpired, onBack, onMistake
 export function RecallQuestion({ question, path, api, csrf, onExpired, onAssessed, onMistakes }) {
   const [result, setResult] = useState(null);
   const [savedToMistakes, setSavedToMistakes] = useState(false);
+  const [inputRevision, setInputRevision] = useState(question.inputRevision ?? 1);
   const [stemCorrection, setStemCorrection] = useState(question.stemCorrection ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -107,7 +108,7 @@ export function RecallQuestion({ question, path, api, csrf, onExpired, onAssesse
     setBusy(true);
     setError('');
     try {
-      const saved = await api(path + '/assessment', { data: { rating }, csrf });
+      const saved = await api(path + '/assessment', { data: { rating, inputRevision: result.inputRevision ?? 1 }, csrf });
       setResult(current => ({ ...current, ...saved }));
       setSavedToMistakes(rating !== 'mastered');
       onAssessed?.();
@@ -122,14 +123,14 @@ export function RecallQuestion({ question, path, api, csrf, onExpired, onAssesse
   return <section className="pc-recognition-item">
     <small>{question.paperTitle} · 第 {question.pageNumber} 页</small>
     <p className="pc-confirmed-stem">{stemCorrection ?? question.stem}</p>
-    <StemCorrection question={{ ...question, stemCorrection }} path={path} api={api} csrf={csrf}
-      onExpired={onExpired} onSaved={setStemCorrection} />
+    <StemCorrection question={{ ...question, stemCorrection, inputRevision }} path={path} api={api} csrf={csrf}
+      onExpired={onExpired} onSaved={(stem, changed, version) => { setInputRevision(version); setStemCorrection(stem); if (changed) { setResult(null); onAssessed?.(); } }} />
     <button disabled={busy} onClick={() => reveal(result?.solutionStatus === 'failed')}>
       {!result ? '查看本题答案' : result.solutionStatus === 'failed' ? '重试生成答案' : '刷新答案'}
     </button>
     {error && <p role="alert">{error}</p>}
     {result && <>
-      {stemCorrection && <p>下方模型解析对应原题干。可保存自己的答案和解析。</p>}
+      {stemCorrection && <p>当前为个人修订版本，答案按此版本重新生成。</p>}
       {result.modelSolution && <KnowledgePoints points={result.modelSolution.knowledgePoints} />}
       {result.reference && <p>已核验答案：{result.reference.answers.join('、')} {result.reference.explanation}</p>}
       {result.modelSolution ? <div className="pc-confirmed-stem">
@@ -195,8 +196,8 @@ export function StemCorrection({ question, path, api, csrf, onExpired, onSaved }
     setError('');
     setSaved(false);
     try {
-      const result = await api(path + '/stem-correction', { data: { stem }, csrf });
-      onSaved(result.stemCorrection);
+      const result = await api(path + '/stem-correction', { data: { stem, inputRevision: question.inputRevision ?? 1 }, csrf });
+      onSaved(result.stemCorrection, result.changed, result.inputRevision);
       setSaved(true);
     } catch (failure) {
       if (failure.status === 401) onExpired();
@@ -213,7 +214,7 @@ export function StemCorrection({ question, path, api, csrf, onExpired, onSaved }
         defaultValue={question.stemCorrection ?? question.stem} /></label>
       <button disabled={busy}>{busy ? '保存中…' : '保存题干'}</button>
     </form>
-    {saved && <p role="status">已保存题干。</p>}
+    {saved && <p role="status">已保存题干。内容变化会重新计算当前题进度，历史作答保留。</p>}
     {error && <p role="alert">{error}</p>}
   </details>;
 }

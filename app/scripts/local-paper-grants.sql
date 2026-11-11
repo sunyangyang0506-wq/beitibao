@@ -21,7 +21,7 @@ DROP POLICY IF EXISTS page_recognition_worker ON paper_page_recognition;
 CREATE POLICY page_recognition_worker ON paper_page_recognition TO :"worker_role" USING (true) WITH CHECK (true);
 GRANT SELECT, INSERT, UPDATE, DELETE ON paper_model_cache_claim TO :"worker_role";
 GRANT SELECT, INSERT, UPDATE ON model_budget_days, model_tenant_days, model_invocations TO :"worker_role";
-GRANT SELECT (title, questions, answers, draft_state) ON practice_attempts TO :"worker_role";
+GRANT SELECT (attempt_id, title, questions, answers, draft_state) ON practice_attempts TO :"worker_role";
 GRANT SELECT, INSERT ON practice_results TO :"worker_role";
 DROP POLICY IF EXISTS practice_results_worker ON practice_results;
 CREATE POLICY practice_results_worker ON practice_results TO :"worker_role" USING (true) WITH CHECK (true);
@@ -48,3 +48,5 @@ GRANT UPDATE (original_recognition) ON paper_page_recognition TO :"worker_role";
 GRANT UPDATE (standalone_solution) ON paper_questions TO :"worker_role";
 GRANT UPDATE (school_reused) ON predictions TO :"worker_role";
 GRANT UPDATE (subject_key) ON school_paper_index TO :"worker_role";
+
+GRANT SELECT ON question_revision_history TO :"worker_role";

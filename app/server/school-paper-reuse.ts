@@ -9,7 +9,7 @@ import { solutionPromptVersion } from './model-solution.js';
 type Recognition = Awaited<ReturnType<typeof recognizeImage>>;
 type Solution = { status?: string; answer?: string; explanation?: string; knowledgePoints?: string[]; promptVersion?: string; originalImagePages?: number[] };
 type Page = { page_number: number; status: string; reviewed_at: Date | null; recognition: Recognition | null; original_recognition: Recognition | null };
-type Question = { page_number: number; fingerprint: string; stem: string; question_kind: string; source_pages: number[];
+type Question = { input_revision: number; page_number: number; fingerprint: string; stem: string; question_kind: string; source_pages: number[];
   model_solution: Solution | null; solution_status: string | null; standalone_solution: boolean; reference: unknown; visual_review: string | null };
 type Source = {
   id: string; tenant_id: string; paper_id: string; file_hash: string; page_hashes: string[]; subject_key: string | null; content_key: string; created_at: Date;
@@ -46,7 +46,7 @@ async function readSource(db: PoolClient, source: Source, recipient: string) {
   await setTenant(db, source.tenant_id);
   const { rows: pages } = await db.query<Page>(`SELECT page_number, status, reviewed_at, recognition, original_recognition FROM paper_page_recognition
     WHERE tenant_id = $1 AND paper_id = $2 ORDER BY page_number`, [source.tenant_id, source.paper_id]);
-  const { rows: questions } = await db.query<Question>(`SELECT page_number, fingerprint, stem, question_kind, source_pages, model_solution, solution_status,
+  const { rows: questions } = await db.query<Question>(`SELECT input_revision, page_number, fingerprint, stem, question_kind, source_pages, model_solution, solution_status,
     standalone_solution, reference, visual_review FROM paper_questions WHERE tenant_id = $1 AND paper_id = $2
     ORDER BY page_number, created_at, id`, [source.tenant_id, source.paper_id]);
   const { rows: [course] } = await db.query<{ name: string }>('SELECT name FROM courses WHERE tenant_id = $1 AND id = $2',
@@ -74,7 +74,7 @@ function samePageIndexes(source: Source, hashes: string[]) {
 function readyOriginal(source: Source, material: Awaited<ReturnType<typeof readSource>>) {
   if (source.status !== 'review' || source.missing_pages || material.pages.length !== source.page_hashes.length ||
       !material.pages.every(page => completePage(page)) || !material.questions.length ||
-      material.questions.some(question => question.reference || question.visual_review)) return false;
+      material.questions.some(question => question.input_revision > 1 || question.reference || question.visual_review)) return false;
   return material.pages.every(page => {
     const stems = new Set(page.recognition?.stems ?? []);
     const questions = material.questions.filter(question => question.page_number === page.page_number);
@@ -267,12 +267,12 @@ export async function reuseStandaloneSolutions(db: PoolClient, tenant: string, p
   const matches = samePageIndexes(source, target.school_page_hashes);
   let copied = false;
   for (const question of material.questions) {
-    if (!matches.includes(question.page_number) || !question.standalone_solution || question.source_pages.length ||
+    if (question.input_revision > 1 || !matches.includes(question.page_number) || !question.standalone_solution || question.source_pages.length ||
         question.reference || question.visual_review || !usableSolution(question.model_solution)) continue;
     const saved = await db.query(`
       UPDATE paper_questions SET model_solution=$6, solution_status='ready', standalone_solution=true
       WHERE tenant_id=$1 AND paper_id=$2 AND page_number=$3 AND stem=$4 AND question_kind=$5
-        AND solution_status IS NULL AND reference IS NULL AND visual_review IS NULL AND cardinality(source_pages)=0
+        AND input_revision=1 AND solution_status IS NULL AND reference IS NULL AND visual_review IS NULL AND cardinality(source_pages)=0
     `, [tenant, paperId, question.page_number, question.stem, question.question_kind, JSON.stringify(question.model_solution)]);
     copied ||= Boolean(saved.rowCount);
   }

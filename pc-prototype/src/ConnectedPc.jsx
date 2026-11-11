@@ -49,6 +49,7 @@ const messages = {
   RECOGNITION_UNAVAILABLE: '识别结果暂不可用，请刷新。',
   PDF_ONLY: '试卷库只接收 PDF。请先将纸质试卷扫描成 PDF。',
   INVALID_PDF: '请选择有效的 PDF，并填写试卷名称。',
+  QUESTION_VERSION_CONFLICT: '题目已在其他窗口更新，请重新打开后再修改。',
   INVALID_QUESTION: '请输入有效题干。',
   PAPER_NOT_FOUND: '试卷或原页不可用。',
   RATE_LIMITED: '操作过于频繁，请稍后重试。'

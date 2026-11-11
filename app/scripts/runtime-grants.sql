@@ -41,7 +41,7 @@ GRANT DELETE ON papers, paper_questions, recognition_feedback, paper_page_recogn
 GRANT SELECT (tenant_id, paper_id) ON practice_deadline_outbox TO :"app_role";
 GRANT SELECT (tenant_id, cache_key) ON paper_model_cache_claim TO :"app_role";
 GRANT SELECT, INSERT, DELETE ON model_rate_events TO :"app_role";
-GRANT UPDATE (solution_snapshots) ON practice_results TO :"app_role";
+GRANT UPDATE (solution_snapshots, graded) ON practice_results TO :"app_role";
 GRANT UPDATE (exam_at) ON courses TO :"app_role";
 GRANT UPDATE (last_mistake_at) ON question_recall TO :"app_role";
 GRANT UPDATE (course_id) ON papers TO :"app_role";
@@ -49,3 +49,13 @@ GRANT SELECT, INSERT ON schools TO :"app_role";
 GRANT UPDATE (school_id) ON accounts TO :"app_role";
 GRANT UPDATE (share_school_id, school_content_key) ON papers TO :"app_role";
 GRANT UPDATE (share_school_id) ON paper_uploads TO :"app_role";
+
+-- Versioned personal inputs and append-only history; no UPDATE grant on archives.
+GRANT SELECT, INSERT, DELETE ON question_revision_history, practice_history TO :"app_role";
+GRANT SELECT ON submitted_practice_history TO :"app_role";
+GRANT UPDATE (stem, input_revision, model_solution, solution_lease, solution_lease_until,
+  solution_failure, solution_finished_at, standalone_solution) ON paper_questions TO :"app_role";
+GRANT UPDATE (assessed_revision) ON question_recall TO :"app_role";
+GRANT UPDATE (questions, title, deadline_at) ON practice_attempts TO :"app_role";
+
+GRANT UPDATE (graded, solution_snapshots) ON practice_history TO :"app_role";

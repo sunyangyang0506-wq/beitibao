@@ -191,7 +191,7 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
             ...(privatePapers && { canDelete: true }) };
         }
         const { rows: questions } = await db.query(`
-          SELECT q.id, page_number AS "pageNumber", stem, question_kind AS "kind", r.stem_correction AS "stemCorrection",
+          SELECT q.id, input_revision AS "inputRevision", page_number AS "pageNumber", stem, question_kind AS "kind", r.stem_correction AS "stemCorrection",
             reference, model_solution AS "modelSolution", solution_status AS "solutionStatus", solution_failure AS "solutionFailure",
             CASE WHEN cardinality(source_pages) > 0 THEN source_pages END AS "sourcePages"
           FROM paper_questions q LEFT JOIN question_recall r ON (r.tenant_id, r.question_id) = (q.tenant_id, q.id)
