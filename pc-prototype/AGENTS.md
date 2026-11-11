@@ -12,13 +12,15 @@ Support laptop browsers only. Validate the main workflows at 1280 × 800 and 144
 
 The PC flow uses the cool gray and cobalt desktop references. Keep progress across subjects, one separate prediction paper per subject, continuous whole-paper practice with a fixed answer card, and subject → question type → source papers for cross-paper recall.
 
+Keep the practice entry in the “题目背诵” sidebar item. The course progress table ends with “考题预测”. Explain that prediction unlocks after the learner finishes every original in that subject, both in the sidebar and on incomplete course rows.
+
 The mistake notebook filters by subject, question type, and retry status. Show the recorded date in each row.
 
 In the connected paper library, show model-recognized stems, knowledge points, and reference answers. In practice results, use automatic grading with eligible model answers. Show unresolved answers as unable to grade automatically, with no mandatory manual review.
 
 Show a multi-question prediction paper per subject. Use one answer card and one final submission for the entire paper.
 
-Automatically generate a prediction after the subject's uploaded papers finish recognition and enough source questions are available. Show the question paper, answer fields, and generation method directly on the prediction page. Keep one submission for the whole paper and show the answers and explanations on the same page after submission.
+Let learners confirm the full set of originals in the subject's paper library. Prepare the prediction automatically after confirmation, recognition and source checks. Reuse the validated prediction for learners at the same school with the same subject and complete authorized source set. Each learner unlocks it through their own progress. Show the question paper, answer fields, and generation method directly on the prediction page after unlock. Keep one submission for the whole paper and show the answers and explanations on the same page after submission.
 
 Accept PDF uploads only. Use a single “上传试卷” button in place of the first-login guide heading. Explain model identification of stems, knowledge points, and reference answers, and provide PDF scanning steps in the library.
 

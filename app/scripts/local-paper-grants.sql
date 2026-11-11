@@ -37,7 +37,7 @@ GRANT SELECT, INSERT, DELETE ON model_rate_events TO :"worker_role";
 GRANT SELECT ON recognition_feedback TO :"worker_role";
 DROP POLICY IF EXISTS feedback_local_worker ON recognition_feedback;
 CREATE POLICY feedback_local_worker ON recognition_feedback FOR SELECT TO :"worker_role" USING (true);
-GRANT SELECT (tenant_id, id, name) ON courses TO :"worker_role";
+GRANT SELECT (tenant_id, id, name, prediction_source_papers) ON courses TO :"worker_role";
 GRANT UPDATE (course_id, recognized_subject) ON papers TO :"worker_role";
 GRANT SELECT (id, school_id) ON accounts TO :"worker_role";
 GRANT SELECT (teacher, term) ON courses TO :"worker_role";

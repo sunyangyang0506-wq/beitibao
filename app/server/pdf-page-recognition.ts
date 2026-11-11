@@ -10,6 +10,7 @@ import { renderPage } from './paper-parser.js';
 import { closedBookActive } from './practice.js';
 import { loadPaperOriginal, type PaperOriginal, type PaperStorage } from './paper-storage.js';
 import { queueCoursePrediction } from './predictions.js';
+import { lockPredictionSourceCourse } from './prediction-access.js';
 import { reuseMatchingPages, reuseStandaloneSolutions } from './school-paper-reuse.js';
 import { setTenant, subjectKey } from './school-identity.js';
 import type { JobTarget } from './job-outbox.js';
@@ -21,7 +22,7 @@ const pageParams = { type: 'object', required: ['paperId', 'page'], properties: 
 } };
 const security = [{ session: [] }];
 
-export function registerPdfPageRecognition(app: FastifyInstance, pool: Pool, prefix: string, modelsEnabled = true) {
+export function registerPdfPageRecognition(app: FastifyInstance, pool: Pool, prefix: string, modelsEnabled = true, predictionsEnabled = false) {
   const route = prefix + '/papers/:paperId/pages/:page';
   app.post<{ Params: { paperId: string; page: number } }>(route + '/recognition',
     { schema: { params: pageParams, security } }, async (request, reply) => {
@@ -76,6 +77,7 @@ export function registerPdfPageRecognition(app: FastifyInstance, pool: Pool, pre
       const key = [tenant, paperId, page];
       const status = await asTenant(pool, tenant, async db => {
         // Serialize page confirmation with candidate confirmation and figure re-selection.
+        const courseId = predictionsEnabled ? await lockPredictionSourceCourse(db, tenant, paperId) : null;
         const { rows: [paper] } = await db.query<{ model_allowed: boolean }>(
           'SELECT model_allowed FROM papers WHERE tenant_id = $1 AND id = $2 FOR UPDATE', key.slice(0, 2));
         if (await closedBookActive(db, tenant, paperId)) return 'locked';
@@ -102,6 +104,7 @@ export function registerPdfPageRecognition(app: FastifyInstance, pool: Pool, pre
             lease_until = CASE WHEN $4 THEN NULL ELSE lease_until END
           WHERE tenant_id = $1 AND paper_id = $2 AND page_number = $3
         `, [...key, paused]);
+        if (courseId) await queueCoursePrediction(db, tenant, courseId);
         return 'confirmed';
       });
       if (status === 'locked') return reply.code(409).send({ code: 'CLOSED_BOOK_ACTIVE' });

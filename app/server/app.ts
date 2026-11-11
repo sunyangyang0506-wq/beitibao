@@ -15,6 +15,7 @@ import { getProgress, saveCourse, saveExamTime, type CourseInput } from './cours
 import { recoverySecret, registerPasswordRecovery } from './password-recovery.js';
 import { registerSchoolIdentity } from './school-identity.js';
 import type { PrivatePapers } from './paper-uploads.js';
+import { asTenant } from './db.js';
 
 const cookieName = 'beitibao_session';
 const prefix = '/api/v1';
@@ -127,6 +128,19 @@ export async function createApp({ pool, origin, secureCookies = true, exposeOpen
         return reply.code(403).send({ code: 'CSRF_REJECTED' });
       }
       request.studySession = current;
+    });
+
+    protectedRoutes.addHook('preHandler', async (request, reply) => {
+      const { paperId } = (request.params ?? {}) as { paperId?: string };
+      if (!paperId) return;
+      const locked = await asTenant(pool, request.studySession!.id, db => db.query(`
+        SELECT 1 FROM papers p WHERE p.tenant_id = $1 AND p.id = $2 AND p.is_prediction AND NOT EXISTS (
+          SELECT 1 FROM course_learning_progress progress
+          WHERE (progress.tenant_id,progress.course_id) = (p.tenant_id,p.course_id)
+            AND progress.total_papers > 0 AND progress.completed_papers = progress.total_papers
+        )
+      `, [request.studySession!.id, paperId]));
+      if (locked.rowCount) return reply.code(403).send({ code: 'PREDICTION_LOCKED' });
     });
 
     const security = [{ session: [] }];

@@ -3,15 +3,16 @@ import type { Pool } from 'pg';
 
 type Publish = (event: { version: 1; eventId: string }, delaySeconds: number) => Promise<void>;
 
-export async function dispatchPracticeDeadline(pool: Pool, publish: Publish) {
+export async function dispatchPracticeDeadline(pool: Pool, publish: Publish, eventId?: string) {
   const lease = randomUUID();
   const { rows: [event] } = await pool.query<{ id: string; delay: number; attempts: number }>(`
     WITH exhausted AS (
       UPDATE practice_deadline_outbox SET state = 'dead', lease = NULL, lease_until = NULL
       WHERE state = 'publishing' AND lease_until <= now() AND attempts = 5
+        AND ($2::uuid IS NULL OR id = $2)
     ), next AS (
       SELECT id FROM practice_deadline_outbox
-      WHERE attempts < 5 AND next_attempt_at <= now() AND
+      WHERE attempts < 5 AND next_attempt_at <= now() AND ($2::uuid IS NULL OR id = $2) AND
         (state = 'pending' OR (state = 'publishing' AND lease_until <= now()))
       ORDER BY next_attempt_at, id FOR UPDATE SKIP LOCKED LIMIT 1
     )
@@ -19,7 +20,7 @@ export async function dispatchPracticeDeadline(pool: Pool, publish: Publish) {
       lease_until = now() + interval '1 minute', attempts = o.attempts + 1
     FROM next WHERE o.id = next.id
     RETURNING o.id, o.attempts, greatest(0, ceil(extract(epoch FROM (o.deliver_at - clock_timestamp()))))::int AS delay
-  `, [lease]);
+  `, [lease, eventId ?? null]);
   if (!event) return false;
   let sent = false;
   try {

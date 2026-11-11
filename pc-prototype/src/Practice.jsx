@@ -56,14 +56,14 @@ function PracticeQuestionInput({ question, number, title, answer, submitted, dis
   </div>;
 }
 
-export function Practice({ paperId, courses, api, csrf, onOpen, onExpired, onMistakes, browseId, onUpload }) {
+export function Practice({ paperId, courses, api, csrf, onOpen, onExpired, onMistakes, browseId, onUpload, initialCourseId }) {
   if (paperId) return <Attempt paperId={paperId} api={api} csrf={csrf} onOpen={onOpen} onExpired={onExpired} />;
-  return <PaperPicker browseId={browseId} onUpload={onUpload} onMistakes={onMistakes} courses={courses} api={api} csrf={csrf} onOpen={onOpen} onExpired={onExpired} />;
+  return <PaperPicker initialCourseId={initialCourseId} browseId={browseId} onUpload={onUpload} onMistakes={onMistakes} courses={courses} api={api} csrf={csrf} onOpen={onOpen} onExpired={onExpired} />;
 }
 
-function PaperPicker({ courses, api, csrf, onOpen, onExpired, onMistakes, browseId, onUpload }) {
+function PaperPicker({ courses, api, csrf, onOpen, onExpired, onMistakes, browseId, onUpload, initialCourseId }) {
   const [recallPapers, setRecallPapers] = useState(null);
-  const [chosen, setChosen] = useState('auto');
+  const [chosen, setChosen] = useState(initialCourseId ?? 'auto');
   const [selectedPaperId, setSelectedPaperId] = useState(browseId ?? '');
   const [result, setResult] = useState(null);
   const courseId = chosen;

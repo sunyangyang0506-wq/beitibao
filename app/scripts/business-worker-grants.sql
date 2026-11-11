@@ -39,7 +39,7 @@ GRANT SELECT, INSERT, UPDATE ON model_budget_days, model_tenant_days, model_invo
 GRANT SELECT, INSERT, DELETE ON model_rate_events TO :"worker_role";
 
 \if :paper
-  GRANT SELECT (tenant_id, id, name) ON courses TO :"worker_role";
+  GRANT SELECT (tenant_id, id, name, prediction_source_papers) ON courses TO :"worker_role";
   GRANT SELECT, INSERT ON school_paper_index TO :"worker_role";
   GRANT INSERT ON predictions TO :"worker_role";
   DROP POLICY IF EXISTS prediction_release_paper ON predictions;
@@ -53,7 +53,7 @@ GRANT SELECT, INSERT, DELETE ON model_rate_events TO :"worker_role";
   GRANT SELECT, INSERT ON paper_model_cache TO :"worker_role";
   GRANT SELECT, INSERT, UPDATE, DELETE ON paper_model_cache_claim TO :"worker_role";
 \elif :page
-  GRANT SELECT (tenant_id, id, name) ON courses TO :"worker_role";
+  GRANT SELECT (tenant_id, id, name, prediction_source_papers) ON courses TO :"worker_role";
   GRANT UPDATE (page_order, missing_pages, review_revision, title, course_id, recognized_subject) ON papers TO :"worker_role";
   GRANT SELECT, UPDATE (subject_key) ON school_paper_index TO :"worker_role";
   GRANT UPDATE (school_reuse) ON papers TO :"worker_role";
@@ -82,7 +82,7 @@ GRANT SELECT, INSERT, DELETE ON model_rate_events TO :"worker_role";
   GRANT SELECT (tenant_id, paper_id, reviewed_at, status) ON paper_page_recognition TO :"worker_role";
   DROP POLICY IF EXISTS :"page_policy" ON paper_page_recognition;
   CREATE POLICY :"page_policy" ON paper_page_recognition FOR SELECT TO :"worker_role" USING (true);
-  GRANT SELECT (tenant_id, id, name, teacher, term) ON courses TO :"worker_role";
+  GRANT SELECT (tenant_id, id, name, teacher, term, prediction_source_papers) ON courses TO :"worker_role";
   GRANT SELECT ON school_paper_index TO :"worker_role";
   GRANT SELECT, INSERT, DELETE ON school_prediction_index TO :"worker_role";
   GRANT UPDATE (school_reused) ON predictions TO :"worker_role";

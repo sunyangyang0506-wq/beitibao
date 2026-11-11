@@ -1,6 +1,6 @@
 import { Predictions } from './Predictions.jsx';
 import { Mistakes } from './Mistakes.jsx';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { BookOpen, ChartBar, CheckCircle, ClipboardText, FileText, Plus, Sparkle } from '@phosphor-icons/react';
 import { Practice } from './Practice.jsx';
 import { PaperLibrary } from './PaperLibrary.jsx';
@@ -33,6 +33,9 @@ const messages = {
   PRACTICE_SUBMITTED: '这份作答已提交，请重新载入查看。',
   PREDICTION_NO_EVIDENCE: '请先上传试卷，等待题目自动整理完成。',
   PREDICTION_NOT_RELEASED: '预测卷生成尚未开放。',
+  PREDICTION_LOCKED: '学完本科目全部原卷后解锁预测卷。',
+  PREDICTION_SOURCES_UNCONFIRMED: '请先在试卷库确认本科目的原卷已传齐。',
+  PREDICTION_SOURCES_CHANGED: '本科目的原卷列表已变化，请刷新后重新确认。',
   INVALID_PAPER_UPLOAD: '请检查学校、试卷名称和文件大小。',
   INVALID_PAPER_OBJECT: '文件校验失败，请重新选择并上传。',
   MODEL_CONSENT_UNAVAILABLE: '使用百炼前，请先移除个人信息并确认授权。',
@@ -264,7 +267,10 @@ function Progress({ session, onExpired }) {
   }
 
   const [browseId, setBrowseId] = useState('');
-  const [practice, setPractice] = useState(() => new URL(location.href).searchParams.get('practice'));
+  const [practice, setPractice] = useState(() => {
+    const paperId = new URL(location.href).searchParams.get('practice');
+    return paperId === null ? null : { paperId };
+  });
 
   const [showMistakes, setShowMistakes] = useState(false);
   const [showPrediction, setShowPrediction] = useState(false);
@@ -280,7 +286,7 @@ function Progress({ session, onExpired }) {
     openPractice(''); setBrowseId(paperId); reload();
   }
 
-  function openPractice(paperId, durationMinutes) {
+  const openPractice = useCallback((paperId, durationMinutes, { courseId } = {}) => {
     setBrowseId('');
     setShowMistakes(false);
     setShowPrediction(false);
@@ -290,8 +296,9 @@ function Progress({ session, onExpired }) {
     if (paperId) url.searchParams.set('practice', paperId);
     else url.searchParams.delete('practice');
     history.replaceState(null, '', url);
-    setPractice(paperId);
-  }
+    setPractice(current => paperId === null ? null : { paperId, courseId: courseId ?? current?.courseId });
+  }, []);
+
   function openMistakes() {
     openPractice(null);
     setLibraryCourse(null);
@@ -318,6 +325,13 @@ function Progress({ session, onExpired }) {
     setRefresh(current => current + 1);
   }
 
+  function openProgress() {
+    openPractice(null);
+    setLibraryCourse(null);
+    setProgress(null);
+    reload();
+  }
+
   async function logout() {
     setSigningOut(true);
     setError('');
@@ -336,13 +350,14 @@ function Progress({ session, onExpired }) {
     <aside className="sidebar">
       <Brand />
       <div className="nav-label">复习工作区</div>
-      <button className={showPrediction || showMistakes || libraryCourse || practice !== null ? "nav" : "nav active"} aria-current={showPrediction || showMistakes || libraryCourse || practice !== null ? undefined : "page"} onClick={() => { openPractice(null); setLibraryCourse(null); reload(); }}><ChartBar size={21} />学习进展</button>
+      <button className={showPrediction || showMistakes || libraryCourse || practice !== null ? "nav" : "nav active"} aria-current={showPrediction || showMistakes || libraryCourse || practice !== null ? undefined : "page"} onClick={openProgress}><ChartBar size={21} />学习进展</button>
       <button className={practice !== null ? "nav active" : "nav"} aria-current={practice !== null ? "page" : undefined}
         onClick={() => { openPractice(''); reload(); }}><BookOpen size={21} />题目背诵</button>
       <button className={showMistakes ? "nav active" : "nav"} aria-current={showMistakes ? "page" : undefined}
         onClick={openMistakes}><ClipboardText size={21} />错题本</button>
       <button className={showPrediction ? "nav active" : "nav"} aria-current={showPrediction ? "page" : undefined}
-        onClick={() => openPrediction()}><Sparkle size={21} />考题预测</button>
+        aria-describedby="prediction-nav-hint" onClick={() => openPrediction()}><Sparkle size={21} />考题预测</button>
+      <small className="prediction-nav-hint" id="prediction-nav-hint">学完整科后解锁</small>
       <button className={libraryCourse && practice === null ? "nav active" : "nav"} aria-current={libraryCourse && practice === null ? "page" : undefined}
         onClick={() => { openPractice(null); setGuidedLibrary(false); setLibraryCourse('auto'); }}><FileText size={21} />试卷库</button>
       <div className="sidebar-foot"><strong>当前账号</strong><small>{(session.phone ?? session.email)}</small></div>
@@ -357,9 +372,11 @@ function Progress({ session, onExpired }) {
         </div>
       </header>
       {showPrediction ? <Predictions initialCourseId={predictionCourse} api={api} csrf={session.csrfToken} courses={progress?.courses ?? []}
-        onOpen={openPractice} onExpired={onExpired} />
+        onOpen={openPractice} onPractice={courseId => openPractice('', undefined, { courseId })}
+        onLibrary={courseId => { openPractice(null); setGuidedLibrary(false); setLibraryCourse(courseId); }} onExpired={onExpired} />
       : showMistakes ? <Mistakes onPractice={() => openPractice('')} api={api} csrf={session.csrfToken} onExpired={onExpired} />
-      : practice !== null ? <Practice onMistakes={openMistakes} key={practice} paperId={practice} api={api} csrf={session.csrfToken}
+      : practice !== null ? <Practice onMistakes={openMistakes} key={practice.paperId} paperId={practice.paperId}
+        initialCourseId={practice.courseId} api={api} csrf={session.csrfToken}
         courses={progress?.courses ?? []} browseId={browseId} onUpload={startUploadGuide} onOpen={openPractice} onExpired={onExpired} />
       : libraryCourse ? <PaperLibrary onMistakes={openMistakes} onPrediction={openPrediction} api={api} csrf={session.csrfToken}
         onBrowse={openBrowse} guided={guidedLibrary} courses={progress?.courses ?? []} courseId={libraryCourse} onCourse={setLibraryCourse} onExpired={onExpired} onPractice={openPractice} />
@@ -380,18 +397,17 @@ function Progress({ session, onExpired }) {
           <div className="panel-head"><div><h2>科目进展</h2><p>原卷背题按套统计，预测卷单独记录。</p></div>
             <div className="segments" aria-label="科目完成状态">{[['all','全部'],['pending','未完成'],['completed','已完成']].map(([value,label])=><button key={value} type="button" className={progressFilter === value ? 'selected' : ''} aria-pressed={progressFilter === value} onClick={() => setProgressFilter(value)}>{label}</button>)}</div>
           </div>
-          <table><thead><tr><th>科目</th><th>原卷背题进展</th><th>剩余套数</th><th>考题预测</th><th>下一步</th></tr></thead>
+          <table><thead><tr><th>科目</th><th>原卷背题进展</th><th>剩余套数</th><th>考题预测</th></tr></thead>
             <tbody>
               {progress?.courses.filter(course => progressFilter === 'all' || (progressFilter === 'completed') === (course.status === 'completed')).map(course => <tr key={course.id}>
                 <td><strong>{course.name}</strong><small>{course.teacher || '教师未填写'} · {course.term}</small>
                   <button className="link prototype-exam-time" onClick={() => setExamCourse(course)} aria-label={'考试时间 · ' + course.name}>{course.examAt ? '考试 ' + course.examAt.replace('T', ' ') : '考试时间'}</button></td>
                 <td>已完成 {course.completedPapers} / {course.totalPapers} 套</td>
                 <td>{course.remainingPapers} 套</td>
-                <td><button className="link" onClick={() => openPrediction(course.id)}>查看预测卷</button></td>
-                <td><button className="link" onClick={() => course.draftPaperId ? openPractice(course.draftPaperId) : setLibraryCourse(course.id)}>
-                  {course.draftPaperId ? '继续答题' : course.totalPapers ? '查看试卷' : '上传试卷'}</button></td>
+                <td>{course.status === 'completed' ? <button className="link" onClick={() => openPrediction(course.id)}>查看预测卷</button>
+                  : <span className="prediction-locked-label">学完整科后解锁</span>}</td>
               </tr>)}
-              {!progress?.courses.length && <tr><td colSpan={5}>
+              {!progress?.courses.length && <tr><td colSpan={4}>
                 {progress ? '还没有科目，上传试卷后会自动识别并创建。也可手动添加。' : error ? '暂未获取到进展。' : '正在读取学习进展…'}
               </td></tr>}
             </tbody>

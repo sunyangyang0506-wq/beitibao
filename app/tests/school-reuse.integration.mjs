@@ -94,8 +94,9 @@ test('same-school accounts reuse complete originals and predictions with zero mo
     const input = JSON.parse(messages.at(-1).content.split('\n').at(-1));
     if (thinking) return response({ solvable: true, answer: '对应术语', explanation: '根据给出的约束判断。' });
     if (input.proposedAnswer) return response({ independentAnswer: input.proposedAnswer, supported: true });
-    const index = Number(input.evidence.stem[0]) - 1;
-    return response({ stem: generated[index], answer: '对应术语', explanation: '根据给出的约束判断。',
+    const stem = input.evidence.stem.includes('depth-first') ? '遍历迷宫分支时一路走到尽头再回到分岔口，采用哪种搜索？'
+      : generated[Number(input.evidence.stem[0]) - 1];
+    return response({ stem, answer: '对应术语', explanation: '根据给出的约束判断。',
       rationale: '检验同一知识点的应用。', knowledgePoints: ['基础概念'] });
   });
 
@@ -119,6 +120,25 @@ test('same-school accounts reuse complete originals and predictions with zero mo
     'SELECT task,count(*)::int AS calls FROM model_invocations WHERE tenant_id=$1 GROUP BY task ORDER BY task', [learner.id])).rows;
   const prediction = async (learner, course = learner.course) =>
     (await call(learner.session, 'GET', '/courses/' + course + '/prediction')).json();
+  const job = async (learner, course = learner.course) => (await admin.query(`
+    SELECT id, status, paper_id AS "paperId" FROM predictions WHERE tenant_id=$1 AND course_id=$2
+    ORDER BY created_at DESC, id DESC LIMIT 1`, [learner.id, course])).rows[0];
+  async function confirmSources(learner, papers, course = learner.course) {
+    const result = await call(learner.session, 'POST', '/courses/' + course + '/prediction/confirm-sources',
+      { paperIds: papers.map(paper => paper.id) });
+    assert.equal(result.statusCode, 200, result.body);
+    return result.json();
+  }
+  async function completeOriginal(learner, target) {
+    const path = '/papers/' + target.id + '/practice';
+    const started = await call(learner.session, 'POST', path, {});
+    assert.equal(started.statusCode, 200, started.body);
+    const { questions, revision } = started.json();
+    const submitted = await call(learner.session, 'POST', path + '/save', {
+      revision, answers: Object.fromEntries(questions.map(question => [question.id, '已练习'])), submit: true
+    });
+    assert.equal(submitted.statusCode, 200, submitted.body);
+  }
   async function runPage(target, number, stems) {
     modelPages.push({ number, stems });
     assert.equal(await processNextPageRecognition(workers.page, undefined, storage, { ...target, page: number }, true, true), true);
@@ -160,13 +180,24 @@ test('same-school accounts reuse complete originals and predictions with zero mo
     assert.equal((await inspect(second, duplicate)).paper.status, 'processing');
     assert.deepEqual(await meter(second), []);
     assert.equal(calls.ocr + calls.solution + calls.prediction, 0);
-    for (const [index, stems] of pages.entries()) await runPage(original, index + 1, stems);
+    await runPage(original, 1, pages[0]);
+    assert.equal(await job(first), undefined);
+    assert.deepEqual(await confirmSources(first, [original]), { sourcesConfirmed: true, waitingForPapers: true });
+    assert.equal(await job(first), undefined);
+    await runPage(original, 2, pages[1]);
     const solved = await solveAll(first, original);
     assert.equal(solved.questions.length, 6);
     assert.ok(solved.questions.every(q => q.modelSolution?.knowledgePoints.length));
-    const queued = await prediction(first);
-    assert.equal(queued.prediction.status, 'queued');
-    assert.equal(await processNextPrediction(workers.prediction, undefined, { id: queued.prediction.id, tenant: first.id }), true);
+    const queued = await job(first);
+    assert.equal(queued.status, 'queued');
+    assert.equal(await processNextPrediction(workers.prediction, undefined, { id: queued.id, tenant: first.id }), true);
+    const readyWhileLocked = await job(first);
+    assert.equal(readyWhileLocked.status, 'ready');
+    assert.deepEqual(await prediction(first), { enabled: true, locked: true, sourcesConfirmed: true, waitingForPapers: false,
+      questions: [], prediction: null, history: [] });
+    assert.equal((await call(first.session, 'GET', '/papers/' + readyWhileLocked.paperId)).json().code, 'PREDICTION_LOCKED');
+    assert.equal((await call(first.session, 'POST', '/papers/' + readyWhileLocked.paperId + '/practice', {})).json().code, 'PREDICTION_LOCKED');
+    await completeOriginal(first, original);
     const firstPrediction = await prediction(first);
     assert.equal(firstPrediction.prediction.status, 'ready', JSON.stringify(firstPrediction.prediction));
     assert.equal(firstPrediction.questions.length, 6);
@@ -186,8 +217,12 @@ test('same-school accounts reuse complete originals and predictions with zero mo
     assert.equal(await processNextSolution(workers.solution, undefined, storage, { tenant: second.id, id: reused.questions[0].id }), false);
     assert.equal((await call(second.session, 'GET', '/papers/' + original.id)).statusCode, 404);
 
-    const secondJob = (await prediction(second)).prediction;
+    assert.equal(await job(second), undefined);
+    await confirmSources(second, [duplicate]);
+    const secondJob = await job(second);
     assert.equal(await processNextPrediction(workers.prediction, undefined, { id: secondJob.id, tenant: second.id }), true);
+    assert.equal((await prediction(second)).locked, true);
+    await completeOriginal(second, duplicate);
     const secondPrediction = await prediction(second);
     assert.equal(secondPrediction.prediction.schoolReused, true);
     assert.notEqual(secondPrediction.prediction.paperId, firstPrediction.prediction.paperId);
@@ -202,6 +237,12 @@ test('same-school accounts reuse complete originals and predictions with zero mo
     const renderedMatch = await upload(second, repacked);
     assert.equal(await processNextPaper(workers.paper, undefined, undefined, settings, renderedMatch), true);
     assert.equal((await inspect(second, renderedMatch)).paper.schoolReuse, 'exact');
+    const staleConfirm = await call(second.session, 'POST', '/courses/' + second.course + '/prediction/confirm-sources',
+      { paperIds: [duplicate.id] });
+    assert.equal(staleConfirm.json().code, 'PREDICTION_SOURCES_CHANGED');
+    assert.equal((await prediction(second)).locked, true);
+    await confirmSources(second, [duplicate, renderedMatch]);
+    await completeOriginal(second, renderedMatch);
     assert.equal((await prediction(second)).prediction.id, secondJob.id);
     assert.deepEqual(await meter(second), []);
     assert.deepEqual(calls, baseline);
@@ -210,7 +251,7 @@ test('same-school accounts reuse complete originals and predictions with zero mo
     const afterHashes = await schoolPageFingerprints(variant, 2);
     assert.equal(beforeHashes[0], afterHashes[0]);
     assert.notEqual(beforeHashes[1], afterHashes[1]);
-    const partial = await upload(second, variant, { course: second.course });
+    const partial = await upload(second, variant, { course: second.course, share: true });
     assert.equal(await processNextPaper(workers.paper, undefined, undefined, settings, partial), true);
     assert.equal(await processNextPageRecognition(workers.page, undefined, storage, { ...partial, page: 1 }, true, true), false);
     await runPage(partial, 2, changes[1]);
@@ -220,14 +261,21 @@ test('same-school accounts reuse complete originals and predictions with zero mo
     assert.deepEqual(changed.questions.filter(q => q.pageNumber === 1).map(q => q.modelSolution),
       solved.questions.filter(q => q.pageNumber === 1).map(q => q.modelSolution));
     assert.ok(changed.questions.filter(q => q.pageNumber === 2).every(q => q.solutionStatus === 'queued'));
-    const refreshed = await prediction(second);
-    assert.equal(refreshed.prediction.schoolReused, false);
-    assert.equal(refreshed.prediction.status, 'queued');
-    assert.notEqual(refreshed.prediction.id, secondJob.id);
+    assert.equal((await job(second)).id, secondJob.id);
+    assert.equal((await prediction(second)).sourcesConfirmed, false);
+    await confirmSources(second, [duplicate, renderedMatch, partial]);
+    const refreshed = await job(second);
+    assert.equal(refreshed.status, 'queued');
+    assert.notEqual(refreshed.id, secondJob.id);
     assert.deepEqual(await meter(second), [{ task: 'page', calls: 1 }]);
     const solvedVariant = await solveAll(second, partial);
     assert.ok(solvedVariant.questions.every(question => question.solutionStatus === 'ready'));
     assert.deepEqual(await meter(second), [{ task: 'page', calls: 1 }, { task: 'solution', calls: 3 }]);
+    const beforeChangedPrediction = calls.prediction;
+    assert.equal(await processNextPrediction(workers.prediction, undefined, { id: refreshed.id, tenant: second.id }), true);
+    assert.ok(calls.prediction > beforeChangedPrediction);
+    await completeOriginal(second, partial);
+    assert.equal((await prediction(second)).prediction.schoolReused, false);
 
     const shorter = await upload(second, pdfOf([pages[0]]), { course: second.course });
     assert.equal(await processNextPaper(workers.paper, undefined, undefined, settings, shorter), true);
@@ -237,16 +285,18 @@ test('same-school accounts reuse complete originals and predictions with zero mo
     assert.equal(incomplete.paper.missingPages, true);
 
     const newTerm = (await call(second.session, 'POST', '/courses',
-      { name: 'Algorithms', teacher: '陈宏远', term: '2027 春' })).json().course.id;
+      { name: 'Algorithms', teacher: '王老师', term: '2027 春' })).json().course.id;
     const otherTerm = await upload(second, pdf, { course: newTerm });
     assert.equal(await processNextPaper(workers.paper, undefined, undefined, settings, otherTerm), true);
     assert.equal((await inspect(second, otherTerm)).paper.schoolReuse, 'exact');
-    const otherTermPrediction = (await prediction(second, newTerm)).prediction;
+    await confirmSources(second, [otherTerm], newTerm);
+    const otherTermPrediction = await job(second, newTerm);
     assert.equal(otherTermPrediction.status, 'queued');
     const predictionCalls = calls.prediction;
     assert.equal(await processNextPrediction(workers.prediction, undefined, { id: otherTermPrediction.id, tenant: second.id }), true);
-    assert.equal((await prediction(second, newTerm)).prediction.schoolReused, false);
-    assert.equal(calls.prediction - predictionCalls, 18);
+    await completeOriginal(second, otherTerm);
+    assert.equal((await prediction(second, newTerm)).prediction.schoolReused, true);
+    assert.equal(calls.prediction, predictionCalls);
 
     const schoolPath = '/admin/accounts/' + second.id + '/school';
     assert.equal((await call(operator, 'POST', schoolPath, { schoolName: '另一所学校' })).statusCode, 200);
@@ -261,7 +311,7 @@ test('same-school accounts reuse complete originals and predictions with zero mo
     const cold = await inspect(second, revoked);
     assert.equal(cold.paper.schoolReuse, null);
     assert.ok(cold.pageReviews.every(page => page.status === 'queued'));
-    t.diagnostic('First account model calls: OCR 2, solutions 6, prediction 18. Second account exact paper + prediction: 0. Same first page with changed later page: 1 OCR call and 3 solution calls for the changed page. Same original in a different term: prediction generated again.');
+    t.diagnostic('Confirmed sources produced a prediction before learning completion. Identical complete sets reused it with zero model calls. Changed material queued and ran a new prediction.');
   } finally {
     await app.close();
     await Promise.all([pool.end(), admin.end(), ...Object.values(workers).map(worker => worker.end())]);

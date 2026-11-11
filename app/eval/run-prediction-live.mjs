@@ -52,10 +52,12 @@ try {
   }
   const kinds = { choice: 'choice', numeric: 'calculation', subjective: 'short_answer' };
   const sources = new Map();
+  const paperIds = [];
   for (const paper of sourcePapers) {
     const bytes = await readFile(paper.file);
     if (paper.sha256) assert.equal(createHash('sha256').update(bytes).digest('hex'), paper.sha256);
     const upload = (await api('POST', '/courses/' + course.id + '/papers?' + new URLSearchParams({ title: paper.title }), bytes, 202)).json().paper;
+    paperIds.push(upload.id);
     assert.equal(await processNextPaper(worker), true);
     for (const question of questions.filter(item => item.paperId === paper.id)) {
       const route = '/papers/' + upload.id + '/questions';
@@ -66,13 +68,21 @@ try {
   }
 
   const path = '/courses/' + course.id + '/prediction';
-  const before = (await api('GET', '/progress')).json().courses[0];
-  const planned = (await api('GET', path)).json().targetQuestions;
-  assert.ok(planned >= minimumPaperQuestions, 'This fixture must exercise a complete prediction paper');
+  await api('POST', path + '/confirm-sources', { paperIds });
   const requests = await Promise.all([api('POST', path, {}), api('POST', path, {})]);
   assert.equal(requests[0].json().id, requests[1].json().id);
   assert.equal(await processNextPrediction(worker), true);
+  assert.equal((await api('GET', path)).json().locked, true);
+  for (const paperId of paperIds) {
+    const original = '/papers/' + paperId + '/practice';
+    const attempt = (await api('POST', original, {})).json();
+    const answers = Object.fromEntries(attempt.questions.map(question => [question.id, '本次验证用的原卷答案占位']));
+    await api('POST', original + '/save', { revision: attempt.revision, answers, submit: true });
+  }
+  const before = (await api('GET', '/progress')).json().courses[0];
   const info = (await api('GET', path)).json();
+  const planned = info.targetQuestions;
+  assert.ok(planned >= minimumPaperQuestions, 'This fixture must exercise a complete prediction paper');
   const {rows:[job]} = await admin.query('SELECT model_calls FROM predictions WHERE id = $1', [info.prediction.id]);
   const { rows: usage } = await admin.query(`
     SELECT model, state, input_tokens AS "inputTokens", output_tokens AS "outputTokens",
