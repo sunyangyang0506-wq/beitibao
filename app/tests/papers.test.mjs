@@ -450,11 +450,15 @@ test('processes a private PDF asynchronously and stores a confirmed question wit
     const newBox = { box: [120, 120, 480, 480] };
     assert.equal((await request(other, 'POST', cropPath + '/reread', newBox)).statusCode, 404);
     const recrop = await request(owner, 'POST', cropPath + '/reread', newBox);
-    assert.equal(recrop.statusCode, 200);
-    assert.deepEqual(recrop.json().figure.box, newBox.box);
-    assert.equal(recrop.json().figure.status, 'needs_review');
-    assert.deepEqual(recrop.json().figure.previous.box, [100, 100, 500, 500]);
-    assert.equal((await request(owner, 'POST', cropPath + '/reread', newBox)).statusCode, 409);
+    // No model credentials are configured in this synthetic integration test.
+    // Report configuration failure rather than pretending a reread succeeded,
+    // and restore the saved figure so a later explicit retry is not consumed.
+    assert.equal(recrop.statusCode, 409);
+    assert.equal(recrop.json().code, 'OCR_NOT_CONFIGURED');
+    const afterFailedReread = (await request(owner, 'GET', imagePath)).json().paper.recognition.figures[0][0];
+    assert.deepEqual(afterFailedReread.box, [100, 100, 500, 500]);
+    assert.equal(afterFailedReread.manualReread, undefined);
+    assert.equal((await request(owner, 'POST', cropPath + '/reread', newBox)).json().code, 'OCR_NOT_CONFIGURED');
     const change = { candidateIndex: 0, stem: '修订题干', visualReview: '原图确认 A→B' };
     assert.equal((await request(other, 'POST', reviewPath, change)).statusCode, 404);
     const repetitions = await Promise.all(Array.from({ length: 2 }, () => request(owner, 'POST', reviewPath, change)));
@@ -802,3 +806,4 @@ test('archives model-identified PDF covers only when the course match is unique'
     await Promise.all([pool.end(), admin.end(), worker.end()]);
   }
 });
+
