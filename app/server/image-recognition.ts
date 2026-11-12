@@ -1,3 +1,4 @@
+import { isTerminalModelFailure, modelProviderFailure } from './model-provider-errors.js';
 import sharp from 'sharp';
 import { printedChoiceKey, printedQuestionNumber as questionNumberInStem } from './printed-paper-answers.js';
 import { classificationText } from './subject-assignment.js';
@@ -94,6 +95,10 @@ async function imageCompletion(bytes: Buffer, mediaType: ImageType, prompt: stri
         ]
       })
     });
+    if (!response.ok) {
+      const failure = modelProviderFailure(response.status, await response.clone().json().catch(() => null));
+      if (failure) throw new Error(failure);
+    }
     if (response.status === 400) {
       const error = (await response.json().catch(() => null))?.error;
       if (error?.code === 'invalid_parameter_error' && typeof error.message === 'string' &&
@@ -102,7 +107,6 @@ async function imageCompletion(bytes: Buffer, mediaType: ImageType, prompt: stri
       }
     }
     if (page && [408, 500, 502, 503, 504].includes(response.status)) throw new RetryableRecognitionError('OCR_REQUEST_FAILED');
-    if (response.status === 401 || response.status === 403) throw new Error('OCR_ACCESS_DENIED');
     if (response.status === 429) throw new Error('MODEL_RATE_LIMIT');
     if (!response.ok) throw new Error('OCR_REQUEST_FAILED');
     const choice = (await response.json().catch(() => null))?.choices?.[0];
@@ -175,7 +179,8 @@ async function recoverMissingQuestionNumbers(bytes: Buffer, mediaType: ImageType
       stems[index] = withPrintedQuestionNumber(stems[index]!, label);
       present.add(Number(label));
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && isTerminalModelFailure(error.message)) throw error;
     // The question and its source page remain available without an inferred number.
   }
 }
@@ -217,7 +222,8 @@ async function recoverMissingChoices(bytes: Buffer, mediaType: ImageType, stems:
       const matching = readings.filter(([label]) => Number(label) === numbers[index]);
       if (matching.length === 1) stems[index] = repairChoiceStem(stems[index]!, matching[0]![1], counts[index]!) ?? stems[index]!;
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && isTerminalModelFailure(error.message)) throw error;
     // Keep the observed stem for publication checks or a later retry.
   }
 }
@@ -298,7 +304,8 @@ export async function recognizeImage(bytes: Buffer, mediaType: ImageType, reques
       let reread = null;
       try {
         reread = await rereadFigure(figureImage, figure.box!, request, isNumericSearchTree(stems[question] ?? '', figure.initial));
-      } catch {
+      } catch (error) {
+        if (error instanceof Error && isTerminalModelFailure(error.message)) throw error;
         // The original page and initial result remain available for manual review.
       }
       figures[question]![index] = compareFigure(figure, reread, stems[question]);
@@ -323,3 +330,4 @@ export async function recognizeImage(bytes: Buffer, mediaType: ImageType, reques
     ...(continuation && { continuation }), model: imageRecognitionModel, promptVersion: imagePromptVersion,
     stems, visualContexts, questionBoxes, figures, resolvedContexts };
 }
+

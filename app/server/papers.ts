@@ -7,7 +7,7 @@ import type { Pool } from 'pg';
 import { createHash } from 'node:crypto';
 import { imagePromptVersion, isImageType, validImage } from './image-recognition.js';
 import { registerPdfPageRecognition } from './pdf-page-recognition.js';
-import { registerRecognitionReview, savedImageCandidates } from './recognition-review.js';
+import { registerRecognitionReview, savedImageCandidates, recoverableModelFailures } from './recognition-review.js';
 import { asTenant, lockCourseMaterial } from './db.js';
 import { paperSolutionVersion } from './paper-model-cache.js';
 import { maxPdfBytes, renderPage } from './paper-parser.js';
@@ -228,13 +228,18 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
       const result = await asTenant(pool, key[0]!, async (db) => {
         const { rows: [paper] } = await db.query(`
           SELECT ${fields}, pages, recognition, model_allowed, is_prediction, (model_allowed AND $3) AS "modelAvailable",
+            ($3 AND model_allowed AND NOT is_prediction
+              AND (media_type = 'application/pdf' OR (media_type IN ('image/png','image/jpeg') AND recognition IS NULL))
+              AND status IN ('review','failed') AND failure = ANY($5::text[])
+              AND (object_key IS NOT NULL OR octet_length(pdf) > 0)
+              AND NOT EXISTS (SELECT 1 FROM paper_questions q WHERE q.tenant_id=$1 AND q.paper_id=$2)) AS "canRetryModelProcessing",
             (model_allowed AND $4 AND media_type = 'application/pdf') AS "autoReview"
           FROM papers WHERE tenant_id = $1 AND id = $2
-        `, [...key, privatePapers?.modelsEnabled ?? true, privatePapers?.modelsEnabled ?? localModelPreview]);
+        `, [...key, privatePapers?.modelsEnabled ?? true, privatePapers?.modelsEnabled ?? localModelPreview, recoverableModelFailures]);
         if (!paper) return null;
         const { model_allowed, is_prediction, ...visiblePaper } = paper;
         if (await closedBookActive(db, key[0]!, key[1]!)) {
-          return { paper: { ...visiblePaper, pages: [], recognition: null }, questions: [], reviews: [], pageReviews: [], closedBook: true,
+          return { paper: { ...visiblePaper, canRetryModelProcessing: false, pages: [], recognition: null }, questions: [], reviews: [], pageReviews: [], closedBook: true,
             ...(privatePapers && { canDelete: true }) };
         }
         const { rows: questions } = await db.query(`
@@ -428,3 +433,4 @@ export function registerPaperRoutes(app: FastifyInstance, pool: Pool, prefix: st
         : reply.code(409).send({ code: 'SOLUTION_UNAVAILABLE' });
     });
 }
+

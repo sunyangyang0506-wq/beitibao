@@ -307,7 +307,7 @@ test('surfaces denied model access without retrying the page', async () => {
   await assert.rejects(recognizeImage(image, 'image/png', async () => {
     calls++;
     return Response.json({ error: { code: 'AccessDenied.Unpurchased' } }, { status: 403 });
-  }), /OCR_ACCESS_DENIED/);
+  }), /MODEL_SERVICE_NOT_ENABLED/);
   assert.equal(calls, 1);
 });
 
@@ -321,3 +321,4 @@ test('extracts only validated subject, term and teacher metadata from synthetic 
   const unknown=await recognize({paperTerm:'unknown',paperTeacher:'张\u0000老师'});
   assert.equal(unknown.paperTerm,undefined);assert.equal(unknown.paperTeacher,undefined);
 });
+

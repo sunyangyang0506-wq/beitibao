@@ -1,3 +1,4 @@
+import { isTerminalModelFailure, modelProviderFailure } from './model-provider-errors.js';
 import { knowledgeMetadata } from './knowledge.js';
 import { randomUUID } from 'node:crypto';
 import type { Pool } from 'pg';
@@ -43,7 +44,10 @@ async function requestPaperSolutions(text: string, image: SolutionImage | undefi
       ]
     })
   });
-  if (!response.ok) throw new Error('PAPER_MODEL_FAILED');
+  if (!response.ok) {
+    const failure = modelProviderFailure(response.status, await response.json().catch(() => null));
+    throw new Error(failure ?? 'PAPER_MODEL_FAILED');
+  }
   const choice = (await response.json()).choices?.[0];
   if (choice?.finish_reason !== 'stop' || typeof choice.message?.content !== 'string') throw new Error('INVALID_PAPER_SOLUTIONS');
   const items = JSON.parse(choice.message.content)?.solutions;
@@ -100,7 +104,10 @@ export async function loadOrProcessPaper(
     });
     const text = result.pages.join('\n\n');
     const solutions = !result.skipSolutions && (questions ? questions.length > 0 : text.trim())
-      ? await solve(text, image, questions).catch(() => null) : null;
+      ? await solve(text, image, questions).catch(error => {
+        if (error instanceof Error && isTerminalModelFailure(error.message)) throw error;
+        return null;
+      }) : null;
     if (solutions) await asTenant(pool, tenant, async db => {
       const held = await db.query(`
         SELECT 1 FROM paper_model_cache_claim
@@ -118,3 +125,4 @@ export async function loadOrProcessPaper(
     `, [tenant, key, lease]));
   }
 }
+
