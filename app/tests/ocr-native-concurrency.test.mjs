@@ -63,6 +63,28 @@ test('native OCR retry/publication concurrency and tenant isolation', { timeout:
     await admin.query(`INSERT INTO paper_page_recognition(tenant_id,paper_id,page_number,status,recognition)
       VALUES ($1,$2,1,'review','{"stems":["1. Explain a synthetic stack."]}'),($1,$2,2,'review','{"stems":["2. Explain a synthetic queue."]}')`, [owner, pdf]);
 
+    await t.test('manual confirmation cannot enqueue solutions across a terminal sibling', async () => {
+      let confirm;
+      registerRecognitionReview({ get() {}, post(path, _options, handler) {
+        if (path.endsWith('/recognition-review')) confirm = handler;
+      } }, api, '/test', { modelsEnabled: true, predictionsEnabled: false });
+      await admin.query('UPDATE papers SET failure=NULL WHERE tenant_id=$1 AND id=$2', [owner, pdf]);
+      try {
+        for (const code of terminal) {
+          await admin.query("UPDATE paper_page_recognition SET failure=$3,status='failed' WHERE tenant_id=$1 AND paper_id=$2 AND page_number=2", [owner, pdf, code]);
+          const reply = { status: null, code(value) { this.status=value; return this; }, send(body) { return { status:this.status, body }; } };
+          assert.deepEqual(await confirm({ studySession:{id:owner}, params:{paperId:pdf},
+            body:{candidateIndex:0,stem:'1. Explain a synthetic stack.'} }, reply),
+          { status:409, body:{code:'MODEL_RECOVERY_REQUIRED'} });
+          assert.equal((await admin.query('SELECT 1 FROM paper_questions WHERE tenant_id=$1 AND paper_id=$2', [owner,pdf])).rowCount,0);
+          assert.equal((await admin.query('SELECT 1 FROM recognition_feedback WHERE tenant_id=$1 AND paper_id=$2', [owner,pdf])).rowCount,0);
+        }
+      } finally {
+        await admin.query("UPDATE papers SET failure='MODEL_PAYMENT_REQUIRED' WHERE tenant_id=$1 AND id=$2", [owner,pdf]);
+        await admin.query("UPDATE paper_page_recognition SET failure=NULL,status='review' WHERE tenant_id=$1 AND paper_id=$2 AND page_number=2", [owner,pdf]);
+      }
+    });
+
     await t.test('two simultaneous explicit retries serialize; only one queues', async () => {
       const blocker = await api.connect();
       let attempts = [];
@@ -165,3 +187,4 @@ test('native OCR retry/publication concurrency and tenant isolation', { timeout:
     await Promise.all([api.end(), page.end(), admin.end()]);
   }
 });
+

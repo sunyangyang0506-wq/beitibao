@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+import { isTerminalModelFailure } from './model-provider-errors.js';
 import { createHash } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
@@ -161,17 +163,29 @@ export function registerRecognitionReview(app: FastifyInstance, pool: Pool, pref
         const pending: PaperFigure = { box, initial: original.initial, reread: null, status: 'needs_review',
           reason: 'manual', manualReread: true, previous: { box: previousBox, initial, reread: previousReread, status, reason } };
         await updateFigure(db, tenant, request.params, source, pending);
-        return { source, pending };
+        return { source, pending, original };
       });
       if (!reserved) return reply.code(404).send({ code: 'FIGURE_NOT_FOUND' });
       if ('locked' in reserved) return reply.code(409).send({ code: 'CLOSED_BOOK_ACTIVE' });
       if ('unavailable' in reserved) return reply.code(409).send({ code: 'FIGURE_REREAD_UNAVAILABLE' });
 
-      const { source, pending } = reserved;
+      const { source, pending, original } = reserved;
       const stem = source.recognition?.stems[source.index] ?? '';
       const reread = await originalImage(source, privatePapers?.storage(request.headers))
         .then(image => rereadFigure(image, box, modelRequest(pool, tenant, 'figure'), isNumericSearchTree(stem, pending.initial)))
-        .catch(() => null);
+        .catch(async (error: unknown) => {
+          if (!(error instanceof Error) || !(isTerminalModelFailure(error.message) || error.message === 'OCR_NOT_CONFIGURED')) return null;
+          // A provider/account failure is not an ambiguous visual reading. Restore
+          // only our untouched reservation so an explicit user retry stays possible.
+          await asTenant(pool, tenant, async db => {
+            const current = await loadCandidate(db, tenant, paperId, candidate, true);
+            if (current && !await hasReview(db, tenant, paperId, candidate) &&
+                isDeepStrictEqual(current.recognition?.figures?.[current.index]?.[figure], JSON.parse(JSON.stringify(pending)))) {
+              await updateFigure(db, tenant, request.params, current, original);
+            }
+          });
+          throw error;
+        });
       const comparison = compareFigure(pending, reread, stem);
       const updated: PaperFigure = { ...comparison, status: 'needs_review', reason: comparison.reason ?? 'manual' };
       const saved = await asTenant(pool, tenant, async db => {
@@ -182,6 +196,11 @@ export function registerRecognitionReview(app: FastifyInstance, pool: Pool, pref
         return updated;
       });
       return { figure: saved };
+    } catch (error) {
+      if (error instanceof Error && (isTerminalModelFailure(error.message) || error.message === 'OCR_NOT_CONFIGURED')) {
+        return reply.code(409).send({ code: error.message });
+      }
+      throw error;
     } finally {
       activeRereads--;
     }
@@ -278,6 +297,7 @@ export function registerRecognitionReview(app: FastifyInstance, pool: Pool, pref
       });
       if (!result) return reply.code(404).send({ code: 'RECOGNITION_UNAVAILABLE' });
       if ('locked' in result) return reply.code(409).send({ code: 'CLOSED_BOOK_ACTIVE' });
+      if ('terminalFailure' in result) return reply.code(409).send({ code: 'MODEL_RECOVERY_REQUIRED' });
       if ('visualPending' in result) return reply.code(409).send({ code: 'FIGURE_REVIEW_REQUIRED' });
       if ('conflict' in result) return reply.code(409).send({ code: 'REVIEW_ALREADY_SAVED' });
       return { outcome: result.outcome };
@@ -300,6 +320,17 @@ async function confirmCandidate(db: PoolClient, tenant: string, paperId: string,
   if (existing) return existing.reviewed_stem === stem && existing.visual_review === visualReview
     ? { outcome: existing.outcome } : { conflict: true };
   if (source.reviewed_at) return { conflict: true };
+  if (stem !== null) {
+    // loadCandidate holds the parent lock: inspect terminal state before publishing
+    // a manual candidate or enqueueing a solution, not only during auto-publication.
+    const terminal = await db.query(
+      `SELECT 1 FROM papers p WHERE p.tenant_id=$1 AND p.id=$2
+        AND (p.failure = ANY($3::text[]) OR EXISTS (
+          SELECT 1 FROM paper_page_recognition r WHERE r.tenant_id=p.tenant_id
+            AND r.paper_id=p.id AND r.failure = ANY($3::text[])))`,
+      [tenant, paperId, recoverableImageModelFailures]);
+    if (terminal.rowCount) return { terminalFailure: true };
+  }
   const pdfFigure = source.media_type === 'application/pdf' && (await db.query<{ pending: boolean }>(
     'SELECT pdf_figure_pending($1::jsonb, $2) AS pending', [JSON.stringify(recognition), source.index])).rows[0]?.pending;
   if (stem !== null && !visualReview &&
@@ -359,4 +390,5 @@ async function releaseReviewedFigure(db: PoolClient, tenant: string, id: string,
     WHERE tenant_id=$1 AND question_id=$2
   `, key);
 }
+
 
