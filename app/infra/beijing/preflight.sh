@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if (( $# > 1 )) || [[ $# -eq 1 && "$1" != "--release" ]]; then
+  printf '无效参数。用法：bash preflight.sh [--release]\n' >&2
+  exit 2
+fi
+
 missing=0
-for command_name in terraform aliyun; do
+for command_name in node terraform aliyun; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     printf '缺少部署工具：%s\n' "$command_name"
     missing=1
@@ -33,3 +38,4 @@ if [[ "$cloud_account" != "$TF_VAR_account_id" ]]; then
 fi
 
 printf '北京目标账号配置预检通过。此检查不会创建资源或发布应用。\n'
+
