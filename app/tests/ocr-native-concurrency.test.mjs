@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 import pg from 'pg';
 import { asTenant } from '../dist/server/db.js';
+import { registerPaperRoutes } from '../dist/server/papers.js';
 import { processNextPaper } from '../dist/server/paper-worker.js';
 import { samplePaper } from './fixtures/sample-paper.mjs';
 import { publishCompletedPages, registerPdfPageRecognition } from '../dist/server/pdf-page-recognition.js';
@@ -50,7 +51,7 @@ test('native OCR retry/publication concurrency and tenant isolation', { timeout:
   const owner = randomUUID(), other = randomUUID(), course = randomUUID(), image = randomUUID(), pdf = randomUUID();
   const retry = retryRoute(api);
   try {
-    for (const pool of [api, page]) {
+    for (const pool of [api, page, paperWorker]) {
       const { rows: [role] } = await pool.query('SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user');
       assert.deepEqual(role, { rolsuper: false, rolbypassrls: false });
     }
@@ -163,10 +164,14 @@ test('native OCR retry/publication concurrency and tenant isolation', { timeout:
 
     await t.test('parent terminal errors block auto publication and page entry; explicit whole-PDF retry recovers', async () => {
       let pageRetry;
+      let details;
+      registerPaperRoutes({get(path,_opts,handler){if(path==='/test/papers/:paperId')details=handler;},post(){},addContentTypeParser(){}},api,'/test');
+      const getDetails=async()=>details({studySession:{id:owner},params:{paperId:pdf},query:{}},{code(){return this;},send(value){return value;}});
       registerPdfPageRecognition({ post(path,_opts,handler) { if(path.endsWith('/recognition'))pageRetry=handler; } }, api, '/test', true, false);
       await admin.query("UPDATE paper_page_recognition SET status='review',failure=NULL,reviewed_at=NULL WHERE tenant_id=$1 AND paper_id=$2",[owner,pdf]);
       for(const code of terminal) {
         await admin.query("UPDATE papers SET failure=$3 WHERE tenant_id=$1 AND id=$2",[owner,pdf,code]);
+        assert.equal((await getDetails()).paper.canRetryModelProcessing,true);
         for(const pool of [api,page]) assert.equal(await asTenant(pool,owner,db=>publishCompletedPages(db,owner,pdf,false,true)),false);
         const reply={status:null,code(v){this.status=v;return this;},send(body){return {status:this.status,body};}};
         assert.deepEqual(await pageRetry({studySession:{id:owner},params:{paperId:pdf,page:1}},reply),
@@ -177,8 +182,16 @@ test('native OCR retry/publication concurrency and tenant isolation', { timeout:
       assert.equal((await retryRoute(api,false)(owner,pdf)).status,409);
       await admin.query('UPDATE papers SET model_allowed=false WHERE tenant_id=$1 AND id=$2',[owner,pdf]);
       assert.equal((await retry(owner,pdf)).status,409);
+      assert.equal((await getDetails()).paper.canRetryModelProcessing,false);
       await admin.query('UPDATE papers SET model_allowed=true WHERE tenant_id=$1 AND id=$2',[owner,pdf]);
+      await admin.query("INSERT INTO paper_questions(tenant_id,paper_id,page_number,fingerprint,stem,figure_review_blocked) VALUES($1,$2,1,'ui-guard','Synthetic held figure',true)",[owner,pdf]);
+      // Hidden/blocked questions still forbid whole-paper replacement.
+      assert.equal((await getDetails()).questions.length,0);
+      assert.equal((await getDetails()).paper.canRetryModelProcessing,false);
+      assert.equal((await retry(owner,pdf)).status,409);
+      await admin.query("DELETE FROM paper_questions WHERE tenant_id=$1 AND paper_id=$2 AND fingerprint='ui-guard'",[owner,pdf]);
       assert.equal((await retry(owner,pdf)).status,202);
+      assert.equal((await getDetails()).paper.canRetryModelProcessing,false);
       assert.equal((await retry(owner,pdf)).status,409);
       assert.equal(await asTenant(page,owner,db=>publishCompletedPages(db,owner,pdf,false,true)),false);
       // Execute the real paper worker under its restricted role with synthetic

@@ -26,7 +26,7 @@ const figureParams = { type: 'object', required: ['paperId', 'candidate', 'figur
 const security = [{ session: [] }];
 // Explicit user-triggered retry only, after credentials/service/budget are fixed.
 // Do not turn arbitrary stored failures into permission to rerun a model.
-const recoverableImageModelFailures = ['MODEL_PAYMENT_REQUIRED', 'MODEL_SERVICE_NOT_ENABLED',
+export const recoverableModelFailures = ['MODEL_PAYMENT_REQUIRED', 'MODEL_SERVICE_NOT_ENABLED',
   'MODEL_AUTHENTICATION_FAILED', 'MODEL_ACCESS_DENIED', 'MODEL_BUDGET_LIMIT', 'MODEL_NOT_CONFIGURED'];
 type FigureParams = { paperId: string; candidate: number; figure: number };
 type CandidateDocument = PaperOriginal & {
@@ -262,7 +262,7 @@ export function registerRecognitionReview(app: FastifyInstance, pool: Pool, pref
                 (failure = ANY($4::text[]) AND recognition IS NULL))
               AND NOT EXISTS (SELECT 1 FROM paper_questions WHERE tenant_id = $1 AND paper_id = $2))
           )))
-      `, [tenant, request.params.paperId, privatePapers?.modelsEnabled ?? true, recoverableImageModelFailures]);
+      `, [tenant, request.params.paperId, privatePapers?.modelsEnabled ?? true, recoverableModelFailures]);
         return queued.rowCount ? 'queued' : 'unavailable';
       });
       if (result === 'locked') return reply.code(409).send({ code: 'CLOSED_BOOK_ACTIVE' });
@@ -331,7 +331,7 @@ async function confirmCandidate(db: PoolClient, tenant: string, paperId: string,
         AND (p.failure = ANY($3::text[]) OR EXISTS (
           SELECT 1 FROM paper_page_recognition r WHERE r.tenant_id=p.tenant_id
             AND r.paper_id=p.id AND r.failure = ANY($3::text[])))`,
-      [tenant, paperId, recoverableImageModelFailures]);
+      [tenant, paperId, recoverableModelFailures]);
     if (terminal.rowCount) return { terminalFailure: true };
   }
   const pdfFigure = source.media_type === 'application/pdf' && (await db.query<{ pending: boolean }>(

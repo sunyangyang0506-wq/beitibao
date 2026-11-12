@@ -5,6 +5,11 @@ import { assignmentMessage } from './paper-assignment.js';
 
 const active = value => ['queued', 'processing'].includes(value?.status);
 const pageFailure = {
+  MODEL_PAYMENT_REQUIRED: '模型服务余额不足，需由服务方处理。',
+  MODEL_SERVICE_NOT_ENABLED: '模型服务尚未开通。',
+  MODEL_AUTHENTICATION_FAILED: '模型服务认证失败。',
+  MODEL_ACCESS_DENIED: '模型服务权限不足。',
+  MODEL_NOT_CONFIGURED: '模型服务尚未配置。',
   MODEL_BUDGET_LIMIT: '今天的模型识别额度已用完。',
   MODEL_RATE_LIMIT: '模型请求过多，请稍后重试。',
   OCR_NOT_CONFIGURED: '自动识别服务尚未配置。',
@@ -12,6 +17,9 @@ const pageFailure = {
   OCR_INCOMPLETE_OPTIONS: '本页有选择题缺少选项。',
   OCR_TIMEOUT: '本页处理超时。'
 };
+
+const terminalModelFailure = code => ['MODEL_PAYMENT_REQUIRED', 'MODEL_SERVICE_NOT_ENABLED',
+  'MODEL_AUTHENTICATION_FAILED', 'MODEL_ACCESS_DENIED', 'MODEL_BUDGET_LIMIT', 'MODEL_NOT_CONFIGURED'].includes(code);
 
 // Source management lives in the library; recognized questions live in study.
 // Both modes use the same closed-book guard returned by the server.
@@ -63,7 +71,8 @@ export function PaperStudy({ api, csrf, paperId, onExpired, onBack, onPractice, 
   const pending = result?.pageReviews?.filter(page => !page.reviewedAt) ?? [];
   const processing = active(paper) || pending.some(active);
   const pageOrder = paper?.pageOrder?.length ? paper.pageOrder : paper?.pages?.map((_, index) => index + 1) ?? [];
-  const ready = Boolean(paper?.courseId && paper.status === 'review' && !paper.missingPages &&
+  const parentBlocked = active(paper) || terminalModelFailure(paper?.failure);
+  const ready = Boolean(!parentBlocked && paper?.courseId && paper.status === 'review' && !paper.missingPages &&
     !pending.length && result?.questions?.length);
   const Container = embedded ? 'section' : 'main';
   return <Container className={embedded ? 'pc-study-paper' : 'content'}>
@@ -81,8 +90,8 @@ export function PaperStudy({ api, csrf, paperId, onExpired, onBack, onPractice, 
       <PaperProcessingRecovery result={result} busy={busy} onRetry={() => act('/retry-recognition')} />
       <SavedImageRecovery result={result} busy={busy} onPublish={() => act('/publish-saved-recognition')} />
       {recoveryNotice && <p role="status">{recoveryNotice}</p>}
-      <PendingPageRecovery pages={pending} busy={busy} onRetry={page => act('/pages/' + page + '/recognition')} />
-      <FigureReviews pages={pending} path={path} busy={busy} canReread={paper?.modelAvailable} onAction={act} />
+      <PendingPageRecovery pages={pending} blocked={parentBlocked} busy={busy} onRetry={page => act('/pages/' + page + '/recognition')} />
+      <FigureReviews pages={parentBlocked ? [] : pending} path={path} busy={busy} canReread={paper?.modelAvailable} onAction={act} />
       {paper?.missingPages && <p role="status">原卷有缺页，请补齐后上传完整 PDF。已有题目仍可背诵。</p>}
       {result && <div className="pc-dialog-actions">
         <label>整套练习计时<select value={duration} onChange={event => setDuration(event.target.value)}><option value="">不限时</option>{[30,60,90,120].map(minutes => <option key={minutes} value={minutes}>{minutes} 分钟</option>)}</select></label>
@@ -126,6 +135,15 @@ export function PaperProcessingRecovery({ result, busy, onRetry }) {
   const paper = result?.paper;
   if (!paper || result.closedBook) return null;
   const image = ['image/png', 'image/jpeg'].includes(paper.mediaType);
+  const terminal = terminalModelFailure(paper.failure);
+  if ((paper.mediaType === 'application/pdf' || image) && terminal && ['review', 'failed'].includes(paper.status)) {
+    const canRetry = paper.canRetryModelProcessing === true && paper.modelAvailable === true && result.questions?.length === 0;
+    return <p role="alert">原卷的自动处理已暂停。{pageFailure[paper.failure]}
+      {canRetry ? <>请在服务恢复后点击重试；重新处理可能调用模型并计入使用额度，不会自动重试。
+        <button disabled={busy} onClick={onRetry}>重试处理原卷</button></>
+        : <>原卷与已有题目已保留。当前不满足重新处理条件，请联系服务方检查模型权限、原文件或已有题目状态。</>}
+    </p>;
+  }
   // Older private image uploads retained their readable original as review even
   // when OCR failed. They use the existing retry endpoint, not PDF page recovery.
   const legacyImageFailure = image && paper.status === 'review' &&
@@ -140,7 +158,8 @@ export function PaperProcessingRecovery({ result, busy, onRetry }) {
   </p>;
 }
 
-export function PendingPageRecovery({ pages, busy, onRetry }) {
+export function PendingPageRecovery({ pages, busy, onRetry, blocked = false }) {
+  if (blocked) return null;
   return pages.filter(page => !page.figureReviewCandidates?.length && ['failed', 'review'].includes(page.status)).map(page =>
     <p role={page.status === 'failed' ? 'alert' : 'status'} key={page.page}>
       第 {page.page} 页：{page.status === 'review' ? '已有结果待整理，可继续处理后加入题目背诵。' : pageFailure[page.failure] ?? '题目整理失败。'}
@@ -265,3 +284,4 @@ function PaperPageImage({ src, alt }) {
   return unavailable ? <p role="alert">原页暂时无法加载。<button onClick={() => setUnavailable(false)}>重试原页</button></p>
     : <img loading="lazy" className="pc-paper-preview" src={src} alt={alt} onError={() => setUnavailable(true)} />;
 }
+
