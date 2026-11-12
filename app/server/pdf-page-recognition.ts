@@ -37,10 +37,10 @@ export function registerPdfPageRecognition(app: FastifyInstance, pool: Pool, pre
         const { rows: [course] } = await db.query<{ course_id: string | null }>(
           'SELECT course_id FROM papers WHERE tenant_id = $1 AND id = $2', key.slice(0, 2));
         if (course?.course_id) await lockCourseMaterial(db, tenant, course.course_id);
-        const { rows: [paper] } = await db.query<{ model_allowed: boolean }>(
-          'SELECT model_allowed FROM papers WHERE tenant_id = $1 AND id = $2 FOR UPDATE', key.slice(0, 2));
+        const { rows: [paper] } = await db.query<{ model_allowed: boolean; failure: string | null; status: string }>(
+          'SELECT model_allowed, failure, status FROM papers WHERE tenant_id = $1 AND id = $2 FOR UPDATE', key.slice(0, 2));
         if (!paper) return undefined;
-        if (!paper.model_allowed) return 'unavailable';
+        if (!paper.model_allowed || paper.status !== 'review' || isTerminalModelFailure(paper.failure ?? '')) return 'unavailable';
         if (await closedBookActive(db, tenant, paperId)) return 'locked';
         const { rows: [job] } = await db.query<{ status: string; reviewed_at: Date | null }>(
           'SELECT status, reviewed_at FROM paper_page_recognition WHERE tenant_id = $1 AND paper_id = $2 AND page_number = $3', key);
@@ -122,8 +122,9 @@ export async function publishCompletedPages(db: PoolClient, tenant: string, pape
   // All callers run in a transaction. Lock the parent first, matching worker
   // completion/recovery, then page rows so the gate and publication are atomic.
   // This gates this paper only; it does not cancel already-running model calls.
-  const parent = await db.query('SELECT 1 FROM papers WHERE tenant_id = $1 AND id = $2 FOR UPDATE', key);
-  if (!parent.rowCount) return false;
+  const { rows: [parent] } = await db.query<{ failure: string | null; status: string }>(
+    'SELECT failure, status FROM papers WHERE tenant_id = $1 AND id = $2 FOR UPDATE', key);
+  if (!parent || parent.status !== 'review' || isTerminalModelFailure(parent.failure ?? '')) return false;
   const { rows } = await db.query<{
     page_number: number; reviewed_at: Date | null; status: string; failure: string | null;
     recognition: Awaited<ReturnType<typeof recognizeImage>> | null;
@@ -308,4 +309,5 @@ export async function processNextPageRecognition(pool: Pool, recognize = recogni
   }).catch(error => { if (!(error instanceof Error) || error.message !== 'STALE_RECOGNITION_LEASE') throw error; });
   return true;
 }
+
 

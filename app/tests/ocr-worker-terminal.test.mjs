@@ -82,12 +82,12 @@ test('whole-paper gate blocks mixed successful/terminal pages in worker and reco
     const db={async query(sql,params){
       order.push(sql);
       assert.deepEqual(params,['tenant','paper']);
-      if(sql.includes('SELECT 1 FROM papers')) {
-        assert.match(sql,/FOR UPDATE/);return {rows:[{}],rowCount:1};
+      if(sql.includes('SELECT failure, status FROM papers')) {
+        assert.match(sql,/FOR UPDATE/);return {rows:[{failure:null,status:'review'}],rowCount:1};
       }
       if(sql.includes('SELECT r.page_number')) {
         assert.match(sql,/FOR UPDATE OF r/);
-        assert.match(order[0],/SELECT 1 FROM papers/);
+        assert.match(order[0],/SELECT failure, status FROM papers/);
         return {rows:[
           {page_number:1,status:'review',failure:null,reviewed_at:null,recognition:{stems:['1. Explain a stack.']}},
           {page_number:2,status:'failed',failure:code,reviewed_at,recognition:null}
@@ -102,6 +102,18 @@ test('whole-paper gate blocks mixed successful/terminal pages in worker and reco
 test('paper lock is acquired before publication gate and missing paper cannot publish',async()=>{
   const { publishCompletedPages } = await import('../dist/server/pdf-page-recognition.js');
   let calls=0;
-  assert.equal(await publishCompletedPages({async query(sql){calls++;assert.match(sql,/SELECT 1 FROM papers.*FOR UPDATE/);return {rows:[],rowCount:0};}},'tenant','missing'),false);
+  assert.equal(await publishCompletedPages({async query(sql){calls++;assert.match(sql,/SELECT failure, status FROM papers.*FOR UPDATE/);return {rows:[],rowCount:0};}},'tenant','missing'),false);
   assert.equal(calls,1);
 });
+
+test('terminal parent and pending whole-paper retry block all publication side effects',async()=>{
+  const { publishCompletedPages } = await import('../dist/server/pdf-page-recognition.js');
+  for(const parent of [...terminal.map(failure=>({failure,status:'review'})),
+    {failure:null,status:'queued'},{failure:null,status:'processing'}]) {
+    let calls=0;
+    const db={async query(sql){calls++;assert.match(sql,/SELECT failure, status FROM papers.*FOR UPDATE/);return {rows:[parent],rowCount:1};}};
+    assert.equal(await publishCompletedPages(db,'tenant','paper',true,true),false);
+    assert.equal(calls,1);
+  }
+});
+

@@ -4,18 +4,20 @@ import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 import pg from 'pg';
 import { asTenant } from '../dist/server/db.js';
-import { publishCompletedPages } from '../dist/server/pdf-page-recognition.js';
+import { processNextPaper } from '../dist/server/paper-worker.js';
+import { samplePaper } from './fixtures/sample-paper.mjs';
+import { publishCompletedPages, registerPdfPageRecognition } from '../dist/server/pdf-page-recognition.js';
 import { registerRecognitionReview } from '../dist/server/recognition-review.js';
 
 const terminal = ['MODEL_PAYMENT_REQUIRED', 'MODEL_SERVICE_NOT_ENABLED', 'MODEL_AUTHENTICATION_FAILED',
   'MODEL_ACCESS_DENIED', 'MODEL_BUDGET_LIMIT', 'MODEL_NOT_CONFIGURED'];
 
-function retryRoute(pool) {
+function retryRoute(pool, modelsEnabled = true) {
   let handler;
   const app = { get() {}, post(path, _options, callback) {
     if (path.endsWith('/retry-recognition')) handler = callback;
   } };
-  registerRecognitionReview(app, pool, '/test', { modelsEnabled: true });
+  registerRecognitionReview(app, pool, '/test', { modelsEnabled });
   return async (tenant, paper) => {
     const reply = { status: null, code(status) { this.status = status; return this; },
       send(body) { return { status: this.status, body }; } };
@@ -35,7 +37,7 @@ async function waitForBlocked(admin, application, count) {
 }
 
 test('native OCR retry/publication concurrency and tenant isolation', { timeout: 45000 }, async t => {
-  for (const name of ['DATABASE_URL', 'MIGRATION_DATABASE_URL', 'RELEASE_PAGE_DATABASE_URL']) {
+  for (const name of ['DATABASE_URL', 'MIGRATION_DATABASE_URL', 'RELEASE_PAGE_DATABASE_URL', 'RELEASE_PAPER_DATABASE_URL']) {
     assert.ok(process.env[name], `${name} is required; run with scripts/test-local.sh`);
   }
   const name = 'ocr-native-' + randomUUID();
@@ -44,6 +46,7 @@ test('native OCR retry/publication concurrency and tenant isolation', { timeout:
     statement_timeout: 12000 });
   const page = new pg.Pool({ connectionString: process.env.RELEASE_PAGE_DATABASE_URL, application_name: name + '-page',
     statement_timeout: 12000 });
+  const paperWorker = new pg.Pool({ connectionString: process.env.RELEASE_PAPER_DATABASE_URL });
   const owner = randomUUID(), other = randomUUID(), course = randomUUID(), image = randomUUID(), pdf = randomUUID();
   const retry = retryRoute(api);
   try {
@@ -80,7 +83,7 @@ test('native OCR retry/publication concurrency and tenant isolation', { timeout:
           assert.equal((await admin.query('SELECT 1 FROM recognition_feedback WHERE tenant_id=$1 AND paper_id=$2', [owner,pdf])).rowCount,0);
         }
       } finally {
-        await admin.query("UPDATE papers SET failure='MODEL_PAYMENT_REQUIRED' WHERE tenant_id=$1 AND id=$2", [owner,pdf]);
+        await admin.query("UPDATE papers SET failure=NULL WHERE tenant_id=$1 AND id=$2", [owner,pdf]);
         await admin.query("UPDATE paper_page_recognition SET failure=NULL,status='review' WHERE tenant_id=$1 AND paper_id=$2 AND page_number=2", [owner,pdf]);
       }
     });
@@ -158,6 +161,35 @@ test('native OCR retry/publication concurrency and tenant isolation', { timeout:
       assert.deepEqual(saved, { status: 'review', failure: 'MODEL_PAYMENT_REQUIRED' });
     });
 
+    await t.test('parent terminal errors block auto publication and page entry; explicit whole-PDF retry recovers', async () => {
+      let pageRetry;
+      registerPdfPageRecognition({ post(path,_opts,handler) { if(path.endsWith('/recognition'))pageRetry=handler; } }, api, '/test', true, false);
+      await admin.query("UPDATE paper_page_recognition SET status='review',failure=NULL,reviewed_at=NULL WHERE tenant_id=$1 AND paper_id=$2",[owner,pdf]);
+      for(const code of terminal) {
+        await admin.query("UPDATE papers SET failure=$3 WHERE tenant_id=$1 AND id=$2",[owner,pdf,code]);
+        for(const pool of [api,page]) assert.equal(await asTenant(pool,owner,db=>publishCompletedPages(db,owner,pdf,false,true)),false);
+        const reply={status:null,code(v){this.status=v;return this;},send(body){return {status:this.status,body};}};
+        assert.deepEqual(await pageRetry({studySession:{id:owner},params:{paperId:pdf,page:1}},reply),
+          {status:409,body:{code:'RECOGNITION_UNAVAILABLE'}});
+      }
+      assert.equal((await admin.query('SELECT 1 FROM paper_questions WHERE tenant_id=$1 AND paper_id=$2',[owner,pdf])).rowCount,0);
+      assert.equal((await retry(other,pdf)).status,409);
+      assert.equal((await retryRoute(api,false)(owner,pdf)).status,409);
+      await admin.query('UPDATE papers SET model_allowed=false WHERE tenant_id=$1 AND id=$2',[owner,pdf]);
+      assert.equal((await retry(owner,pdf)).status,409);
+      await admin.query('UPDATE papers SET model_allowed=true WHERE tenant_id=$1 AND id=$2',[owner,pdf]);
+      assert.equal((await retry(owner,pdf)).status,202);
+      assert.equal((await retry(owner,pdf)).status,409);
+      assert.equal(await asTenant(page,owner,db=>publishCompletedPages(db,owner,pdf,false,true)),false);
+      // Execute the real paper worker under its restricted role with synthetic
+      // stored PDF bytes, not an admin clearing the error to manufacture success.
+      const original=samplePaper(true);
+      assert.equal(await processNextPaper(paperWorker,undefined,undefined,
+        {modelsEnabled:true,storage:{read:async()=>original}}, {tenant:owner,id:pdf}),true);
+      const {rows:[recovered]}=await admin.query('SELECT status,failure FROM papers WHERE tenant_id=$1 AND id=$2',[owner,pdf]);
+      assert.deepEqual(recovered,{status:'review',failure:null});
+    });
+
     await t.test('trusted page worker respects explicit tenant/paper pairing; recovery can publish after repair', async () => {
       // The queue worker is intentionally cross-tenant (USING true); unlike the
       // API role it must not be presented as an end-user RLS boundary.
@@ -184,7 +216,7 @@ test('native OCR retry/publication concurrency and tenant isolation', { timeout:
     await admin.query('DELETE FROM papers WHERE tenant_id=$1', [owner]);
     await admin.query('DELETE FROM courses WHERE tenant_id=$1', [owner]);
     await admin.query('DELETE FROM accounts WHERE id=ANY($1::uuid[])', [[owner, other]]);
-    await Promise.all([api.end(), page.end(), admin.end()]);
+    await Promise.all([api.end(), page.end(), admin.end(), paperWorker.end()]);
   }
 });
 

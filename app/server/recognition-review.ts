@@ -253,6 +253,9 @@ export function registerRecognitionReview(app: FastifyInstance, pool: Pool, pref
         UPDATE papers SET status = 'queued', failure = NULL
         WHERE tenant_id = $1 AND id = $2 AND (
           (status = 'failed' AND object_key IS NOT NULL AND failure = 'PAPER_ORIGINAL_UNAVAILABLE') OR
+          ($3 AND media_type = 'application/pdf' AND model_allowed AND status IN ('review','failed')
+            AND failure = ANY($4::text[]) AND (object_key IS NOT NULL OR octet_length(pdf) > 0)
+            AND NOT EXISTS (SELECT 1 FROM paper_questions WHERE tenant_id = $1 AND paper_id = $2)) OR
           ($3 AND media_type IN ('image/png', 'image/jpeg') AND model_allowed AND (
             status = 'failed' OR (status = 'review' AND object_key IS NOT NULL
               AND (failure IN ('OCR_FAILED', 'OCR_NOT_CONFIGURED') OR
