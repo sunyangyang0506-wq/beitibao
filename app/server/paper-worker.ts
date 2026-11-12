@@ -1,3 +1,4 @@
+import { isTerminalModelFailure } from './model-provider-errors.js';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import type { Pool } from 'pg';
@@ -82,7 +83,7 @@ export async function processNextPaper(pool: Pool, recognize = recognizeImage, s
       return true;
     }
     const code = error instanceof Error ? error.message : '';
-    failure = code === 'PAPER_ORIGINAL_UNAVAILABLE' ? code : isImageType(mediaType)
+    failure = code === 'PAPER_ORIGINAL_UNAVAILABLE' || isTerminalModelFailure(code) ? code : isImageType(mediaType)
       ? (code === 'OCR_NOT_CONFIGURED' ? code : 'OCR_FAILED') : 'PDF_PARSE_FAILED';
     if (validPrivateImage) pages = [''];
   }
@@ -103,7 +104,7 @@ export async function processNextPaper(pool: Pool, recognize = recognizeImage, s
       WHERE tenant_id = $1 AND id = $2 AND lease_id = $3
     `, [paper.tenant_id, paper.id, leaseId, pages ? 'review' : 'failed',
       JSON.stringify(pages ?? []), failure, recognition ? JSON.stringify(recognition) : null]);
-    if (update.rowCount && pages && mediaType === 'application/pdf' && (recognizeAllPdfPages || paper.recognize_scans || schoolHashes) && modelsEnabled) {
+    if (update.rowCount && !failure && pages && mediaType === 'application/pdf' && (recognizeAllPdfPages || paper.recognize_scans || schoolHashes) && modelsEnabled) {
       const scans = paper.object_key || recognizeAllPdfPages || schoolHashes ? pages.map((_, index) => index + 1) : scanPages(pages);
       if (scans.length) await db.query(`
         INSERT INTO paper_page_recognition (tenant_id, paper_id, page_number)
@@ -113,3 +114,4 @@ export async function processNextPaper(pool: Pool, recognize = recognizeImage, s
   });
   return true;
 }
+

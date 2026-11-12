@@ -49,6 +49,14 @@ const messages = {
   FIGURE_REREAD_UNAVAILABLE: '该裁片已经重读或题目已经确认。',
   FIGURE_REVIEW_REQUIRED: '请对照原图核对图表并填写确认后的内容。',
   REVIEW_ALREADY_SAVED: '这条识别结果已核对，请重新读取。',
+  MODEL_RECOVERY_REQUIRED: '模型处理已暂停，请先恢复原卷处理，再整理题目。',
+  OCR_NOT_CONFIGURED: '识别服务尚未配置，请联系服务方；原图已保留。',
+  MODEL_NOT_CONFIGURED: '模型服务尚未配置，请联系服务方。',
+  MODEL_PAYMENT_REQUIRED: '模型服务余额不足，请联系服务方。',
+  MODEL_SERVICE_NOT_ENABLED: '模型服务尚未开通，请联系服务方。',
+  MODEL_AUTHENTICATION_FAILED: '模型认证失败，请联系服务方。',
+  MODEL_ACCESS_DENIED: '模型服务权限不足，请联系服务方。',
+  MODEL_BUDGET_LIMIT: '当前模型处理额度已用完，请稍后再试。',
   RECOGNITION_UNAVAILABLE: '识别结果暂不可用，请刷新。',
   PDF_ONLY: '试卷库只接收 PDF。请先将纸质试卷扫描成 PDF。',
   INVALID_PDF: '请选择有效的 PDF，并填写试卷名称。',
@@ -622,3 +630,4 @@ export function ConnectedPc() {
   }
   return session ? <Progress session={session} onExpired={clearSession} /> : <SignIn onSession={setSession} notice={notice} />;
 }
+

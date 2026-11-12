@@ -21,7 +21,7 @@ async function renderers(t) {
     export const correction = question => renderToStaticMarkup(React.createElement(AnswerCorrection, { question }));
     export const notes = question => renderToStaticMarkup(React.createElement(DemoPersonalNotes, { question, notes: { answer: '已有个人答案', explanation: '已有个人解析' } }));
     export const study = result => renderToStaticMarkup(React.createElement(StudyQuestions, { result, paperId: 'paper' }));
-    export const recovery = pages => renderToStaticMarkup(React.createElement(PendingPageRecovery, { pages }));
+    export const recovery = (pages, blocked = false) => renderToStaticMarkup(React.createElement(PendingPageRecovery, { pages, blocked }));
     export const processingRecovery = (result, busy = false) => renderToStaticMarkup(React.createElement(PaperProcessingRecovery, { result, busy }));
     export const savedImageRecovery = (result, busy = false) => renderToStaticMarkup(React.createElement(SavedImageRecovery, { result, busy }));
     export { isChoiceQuestion, PaperProcessingRecovery, SavedImageRecovery, orderedStudyQuestions };`, resolveDir: fileURLToPath(new URL('..', import.meta.url)), loader: 'jsx' },
@@ -154,6 +154,34 @@ test('saved image recognition has a publication entry without OCR or modifying h
   }
 });
 
+test('terminal PDF recovery is explicit, authority-gated and does not silently retry pages', async t => {
+  const render = await renderers(t);
+  const codes=['MODEL_PAYMENT_REQUIRED','MODEL_SERVICE_NOT_ENABLED','MODEL_AUTHENTICATION_FAILED','MODEL_ACCESS_DENIED','MODEL_BUDGET_LIMIT','MODEL_NOT_CONFIGURED'];
+  for(const mediaType of ['application/pdf','image/png','image/jpeg'])for(const status of ['review','failed'])for(const failure of codes){
+    const result={paper:{status,failure,mediaType,modelAvailable:true,canRetryModelProcessing:true},questions:[]};
+    const html=render.processingRecovery(result);
+    assert.match(html,/自动处理已暂停/);assert.match(html,/重试处理原卷/);
+    assert.match(html,/可能调用模型/);assert.match(html,/不会自动重试/);
+    assert.doesNotMatch(html,/检查 PDF 是否完整/);
+    assert.match(render.processingRecovery(result,true),/<button disabled/);
+    assert.equal(render.processingRecovery({...result,closedBook:true}),'');
+    for(const forbidden of [
+      {...result,paper:{...result.paper,modelAvailable:false}},
+      {...result,paper:{...result.paper,canRetryModelProcessing:false}},
+      {...result,paper:{...result.paper,canRetryModelProcessing:undefined}},
+      {...result,questions:[{id:'existing'}]}
+    ])assert.doesNotMatch(render.processingRecovery(forbidden),/<button/);
+    for(const pending of ['queued','processing'])assert.equal(render.processingRecovery({...result,paper:{...result.paper,status:pending}}),'');
+    let calls=0;
+    const control=render.PaperProcessingRecovery({result,onRetry:()=>calls++});
+    assert.equal(calls,0);
+    function buttons(node){if(!node||typeof node!=='object')return [];if(Array.isArray(node))return node.flatMap(buttons);return [...(node.type==='button'?[node]:[]),...buttons(node.props?.children)];}
+    const button=buttons(control);assert.equal(button.length,1);button[0].props.onClick();assert.equal(calls,1);
+  }
+  assert.equal(render.recovery([{page:1,status:'review'}],true),'');
+  assert.match(render.recovery([{page:1,status:'review'}],false),/重新整理本页/);
+});
+
 test('study follows saved page order while preserving within-page sequence and original sources', async t => {
   const render = await renderers(t);
   const questions = [
@@ -179,3 +207,4 @@ test('study follows saved page order while preserving within-page sequence and o
   assert.match(html, /<button type="button">下一题<\/button>/);
   assert.match(html, /href="\/api\/v1\/papers\/paper\/pages\/2"/);
 });
+
