@@ -4,6 +4,8 @@
 
 从交接入口查找原产品稿、批注和设计图，核对现行决定与代码、恢复本机评测材料，并查看北京预发的实时核验记录。[项目交接](docs/handoff/README.md)
 
+推进上线时先看[上线状态与阻塞清单](docs/handoff/launch-status.md)。代码已合并、测试通过、目标环境已部署及产品验收通过分别记录；11 月 10 日的云端记录是历史证据，不代表今天的运行状态。
+
 - `app/` 包含 TypeScript API、后台任务、OpenAPI、数据库迁移、测试和合成评测。
 - `pc-prototype/` 包含 React 界面及演示、连接 API 两种构建入口。
 - `app/infra/beijing/` 包含北京环境的 Terraform、镜像和验收脚本模板。

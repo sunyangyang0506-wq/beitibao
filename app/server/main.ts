@@ -3,6 +3,7 @@ import { isIP } from 'node:net';
 import { createApp } from './app.js';
 import { ossPaperStorage } from './paper-storage.js';
 import { validateModelReleaseConfiguration } from './model-gateway.js';
+import { readReleaseRevision } from './release-revision.js';
 
 const { DATABASE_URL, WEB_ORIGIN, PORT, HOST, LOCAL_DEVELOPMENT } = process.env;
 if (!DATABASE_URL || !WEB_ORIGIN) throw new Error('DATABASE_URL and WEB_ORIGIN are required');
@@ -28,7 +29,9 @@ if (origin.origin !== WEB_ORIGIN || (local
 const pool = new pg.Pool({
   connectionString: DATABASE_URL, max: 4, idleTimeoutMillis: 1000, connectionTimeoutMillis: 3000
 });
+const releaseRevision = await readReleaseRevision(new URL('../../release-revision.json', import.meta.url));
 const app = await createApp({ pool, origin: WEB_ORIGIN, secureCookies: !local, exposeOpenApi: local,
+  releaseRevision,
   accountAdminEmail: process.env.ACCOUNT_ADMIN_EMAIL?.trim().toLowerCase(), trustedProxies, localPapers: local && process.env.LOCAL_PAPERS === '1',
   localModelPreview: local && modelsEnabled, pdfOnlyUploads: true,
   webRoot: process.env.BEITIBAO_WEB_ROOT,

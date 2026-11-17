@@ -32,3 +32,8 @@ jobs:
           echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
       - name: Check, test, and build with isolated synthetic services
         run: bash scripts/ci.sh
+      - name: Build release image and verify embedded revision
+        run: |
+          revision=$(git rev-parse HEAD)
+          docker build --build-arg BEITIBAO_BUILD_REVISION="$revision" -f app/infra/beijing/Dockerfile.release -t beitibao-release-check .
+          docker run --rm --entrypoint node beitibao-release-check -e 'const fs = require("node:fs"); const assert = require("node:assert/strict"); const manifest = JSON.parse(fs.readFileSync("/opt/beitibao/release-revision.json", "utf8")); assert.equal(manifest.revision, process.argv[1]); console.log("Release image revision verified");' "$revision"

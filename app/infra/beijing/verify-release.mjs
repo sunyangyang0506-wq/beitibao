@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
+import { requireExpectedRevision, verifyReleaseRevision } from './release-checks.mjs';
 
+const expectedRevision = requireExpectedRevision(process.env.BEITIBAO_ACCEPTANCE_REVISION);
 const { BEITIBAO_ACCEPTANCE_ORIGIN, BEITIBAO_ACCEPTANCE_EMAIL, BEITIBAO_ACCEPTANCE_PASSWORD } = process.env;
 const origin = new URL(BEITIBAO_ACCEPTANCE_ORIGIN ?? '');
 assert.equal(origin.protocol, 'https:');
@@ -24,6 +26,7 @@ async function api(path, data) {
 }
 const health = await request(origin + 'healthz');
 assert.equal(health.status, 200);
+verifyReleaseRevision(await health.json(), expectedRevision);
 assert.equal((await request(origin + 'readyz')).status, 200);
 const web = await request(origin);
 assert.equal(web.status, 200);
@@ -83,7 +86,8 @@ try {
   await api(paperPath + '/delete', { confirmed: true });
   assert.equal((await request(origin + 'api/v1' + paperPath, { headers: { cookie } })).status, 404);
   paperPath = undefined;
-  console.log(JSON.stringify({ status: 'passed', checks: ['https', 'api', 'oss-cors', 'oss-version', 'queue',
+  console.log(JSON.stringify({ status: 'passed', scope: 'synthetic-infrastructure-smoke', revision: expectedRevision,
+    checks: ['release-revision', 'https', 'api', 'oss-cors', 'oss-version', 'queue',
     'review', 'practice', 'deletion'], reviewAndPracticeMs: Date.now() - started }));
 } finally {
   if (paperPath) await api(paperPath + '/delete', { confirmed: true }).catch(() => {});
