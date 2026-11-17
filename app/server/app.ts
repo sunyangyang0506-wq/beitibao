@@ -24,11 +24,12 @@ const readMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
 const errorSchema = { type: 'object', required: ['code'], properties: { code: { type: 'string' } } };
 
 export async function createApp({ pool, origin, secureCookies = true, exposeOpenApi = false, localPapers = false, localModelPreview = false, pdfOnlyUploads = false,
-  passwordRecovery = recoverySecret(), trustedProxies = [], accountAdminEmail, privatePapers, webRoot }: {
+  passwordRecovery = recoverySecret(), trustedProxies = [], accountAdminEmail, privatePapers, webRoot, releaseRevision = null }: {
   pool: Pool; origin: string; secureCookies?: boolean; exposeOpenApi?: boolean; localPapers?: boolean; localModelPreview?: boolean; pdfOnlyUploads?: boolean;
   passwordRecovery?: Buffer | null; trustedProxies?: string[]; accountAdminEmail?: string;
   privatePapers?: PrivatePapers;
   webRoot?: string;
+  releaseRevision?: string | null;
 }) {
   const app = Fastify({ bodyLimit: 16 * 1024, trustProxy: trustedProxies.length ? trustedProxies : false,
     ajv: { customOptions: { removeAdditional: false } } });
@@ -69,7 +70,10 @@ export async function createApp({ pool, origin, secureCookies = true, exposeOpen
     }
   });
 
-  app.get('/healthz', async () => ({ status: 'ok' }));
+  app.get('/healthz', async (_request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return { status: 'ok', revision: releaseRevision };
+  });
   if (privatePapers) app.get('/readyz', async (_request, reply) => {
     reply.header('Cache-Control', 'no-store');
     try {

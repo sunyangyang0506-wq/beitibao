@@ -3,6 +3,7 @@
 背题宝面向笔记本浏览器，支持上传试卷、识别题目、整卷练习和按科目生成预测卷。
 
 - 产品规则和历史设计在 `docs/bmad/`。从 `docs/handoff/README.md` 查找现行决定、设计和评测交接。
+- 发布任务从 `docs/handoff/launch-status.md` 恢复。先核对当前提交、已合并 PR 和实际部署版本；每次更新阻塞项、证据日期及下一条可执行动作。历史文档、PR 正文中的“草稿/未合并”不能覆盖 GitHub 的实际合并状态。
 - TypeScript API、后台任务、数据库迁移和合成评测在 `app/`。React 界面在 `pc-prototype/`。
 - 新功能按需使用 [项目质量模板](docs/codex-project-template/README.md)，将范围、验收和证据记录在对应的功能文档。
 

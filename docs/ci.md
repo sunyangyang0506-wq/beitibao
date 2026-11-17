@@ -29,6 +29,7 @@ node --test scripts/ci.test.mjs
 3. 单独运行同校复用集成测试（它的 `.integration.mjs` 文件名不被默认测试通配符包含）。
 4. 运行合成旧版数据迁移、备份与恢复校验（`--release-restore`，包含升级校验）。
 5. 前端单元测试、演示版构建、Sites 打包测试，以及 connected 模式构建。
+6. GitHub 工作流另构建发布镜像，并在容器内核对镜像清单记录的是实际检出的提交。该阶段不推送镜像、不连接云端。`scripts/ci.sh` 本身不要求 Docker。
 
 每次数据库测试复用 `app/scripts/test-local.sh`，新建自己的 `/tmp/beitibao-pg.*` 数据目录和 Unix socket。PostgreSQL 不监听 TCP；迁移管理员、API 和各 worker 使用独立角色，测试结束清理临时集群。CI 不连接已有数据库，也不提供外部服务的凭据。数据库测试失败、覆盖率不足或任一构建失败都会使工作流失败，不跳过、不降级到数据库替身。
 

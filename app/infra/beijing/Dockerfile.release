@@ -19,6 +19,9 @@ FROM node:24-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates fonts-noto-cjk poppler-utils \
     && apt-get clean
 WORKDIR /opt/beitibao
+ARG BEITIBAO_BUILD_REVISION
+LABEL org.opencontainers.image.revision=$BEITIBAO_BUILD_REVISION
+RUN node -e 'const revision = process.env.BEITIBAO_BUILD_REVISION; if (!/^[0-9a-f]{40}$/.test(revision ?? "")) throw new Error("BEITIBAO_BUILD_REVISION must be a full Git commit SHA"); require("node:fs").writeFileSync("release-revision.json", JSON.stringify({ revision }) + "\n")'
 COPY --from=server /build/package.json ./
 COPY --from=server /build/node_modules ./node_modules
 COPY --from=server /build/dist ./dist
